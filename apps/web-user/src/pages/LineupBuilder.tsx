@@ -5,12 +5,11 @@ import { gameDaysApi } from '../api/game-days.api';
 import { lineupsApi } from '../api/lineups.api';
 import { roomsApi } from '../api/rooms.api';
 import { useLineupStore } from '../stores/lineup.store';
-import { PlayerCard } from '../components/PlayerCard';
-import { SalaryCapTracker } from '../components/SalaryCapTracker';
 
 interface Player {
   id: number;
   name: string;
+  nameCn?: string | null;
   position: string;
   team: string;
   cost: number;
@@ -27,6 +26,7 @@ interface Room {
 export function LineupBuilder() {
   const { gameDayId } = useParams<{ gameDayId: string }>();
   const navigate = useNavigate();
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<number>(1);
@@ -35,8 +35,10 @@ export function LineupBuilder() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<'lineup' | 'pool'>('lineup');
 
-  const { selections, totalCost, salaryCap, selectPlayer, removePlayer, reset, isValid, setSalaryCap } = useLineupStore();
+  const { selections, totalCost, salaryCap, selectPlayer, removePlayer, reset, isValid, setSalaryCap } =
+    useLineupStore();
 
   useEffect(() => {
     if (!gameDayId) return;
@@ -91,93 +93,190 @@ export function LineupBuilder() {
 
   if (success) {
     return (
-      <div style={{ maxWidth: 600, margin: '80px auto', textAlign: 'center', padding: 24 }}>
-        <h2 style={{ color: '#27ae60' }}>Lineup Submitted!</h2>
-        <p style={{ color: '#aaa' }}>Your lineup has been saved successfully.</p>
-        <button onClick={() => navigate('/')} style={{ background: '#e94560', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
+      <div className="page-narrow" style={{ textAlign: 'center', paddingTop: 60 }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--success)' }}>Lineup Submitted!</h2>
+        <p className="text-muted mt-8" style={{ fontSize: 15 }}>Your lineup has been saved successfully.</p>
+        <button onClick={() => navigate('/')} className="btn btn-primary btn-full mt-24">
           Back to Home
         </button>
       </div>
     );
   }
 
+  const capPercent = Math.min(100, (totalCost / salaryCap) * 100);
+  const overCap = totalCost > salaryCap;
+
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
-      <h2 style={{ color: '#fff' }}>Lineup Builder — {gameDay?.date}</h2>
+    <div className="page" style={{ paddingTop: 14 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 12 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800 }}>Lineup Builder</h2>
+        {gameDay && (
+          <p className="text-muted mt-4" style={{ fontSize: 13 }}>{gameDay.date}</p>
+        )}
+      </div>
 
       {/* Room selector */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ color: '#aaa', fontSize: 14 }}>Room: </label>
-        <select value={selectedRoom} onChange={(e) => handleRoomChange(Number(e.target.value))}
-          style={{ background: '#16213e', color: '#fff', border: '1px solid #333', padding: '6px 12px', borderRadius: 4, marginLeft: 8 }}>
+      <div style={{ marginBottom: 14 }}>
+        <select
+          className="input"
+          value={selectedRoom}
+          onChange={(e) => handleRoomChange(Number(e.target.value))}
+          style={{ fontSize: 14 }}
+        >
           {rooms.map((r) => (
-            <option key={r.id} value={r.id}>{r.name} (Cap: ${r.salaryCap.toLocaleString()})</option>
+            <option key={r.id} value={r.id}>
+              {r.name} — Cap ${r.salaryCap.toLocaleString()}
+            </option>
           ))}
         </select>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 24 }}>
-        {/* Left: current lineup */}
-        <div>
-          <h3 style={{ color: '#fff', marginBottom: 12 }}>Your Lineup</h3>
-          <SalaryCapTracker totalCost={totalCost} salaryCap={salaryCap} />
+      {/* Mobile tabs */}
+      <div className="tabs builder-tabs">
+        <div
+          className={`tab${activeTab === 'lineup' ? ' active' : ''}`}
+          onClick={() => setActiveTab('lineup')}
+        >
+          My Lineup
+        </div>
+        <div
+          className={`tab${activeTab === 'pool' ? ' active' : ''}`}
+          onClick={() => setActiveTab('pool')}
+        >
+          Player Pool
+        </div>
+      </div>
 
-          {LINEUP_POSITIONS.map((pos) => (
-            <div key={pos} style={{ background: '#16213e', borderRadius: 8, padding: 12, marginBottom: 8 }}>
-              <div style={{ color: '#888', fontSize: 12, marginBottom: 6 }}>{pos}</div>
-              {selections[pos] ? (
-                <PlayerCard
-                  player={selections[pos]!}
-                  onRemove={() => removePlayer(pos)}
-                  selected
-                />
-              ) : (
-                <div style={{ color: '#555', fontSize: 14, padding: '8px 0' }}>Empty — pick a {pos}</div>
-              )}
+      <div className="lineup-builder-grid">
+        {/* ── Lineup panel ── */}
+        <div className={`builder-panel${activeTab === 'lineup' ? ' active' : ''}`}>
+          {/* Salary cap tracker */}
+          <div className="salary-tracker">
+            <div className="salary-tracker-header">
+              <span className="text-muted">Salary Used</span>
+              <span style={{ fontWeight: 700, color: overCap ? 'var(--primary)' : 'var(--text)' }}>
+                ${totalCost.toLocaleString()} / ${salaryCap.toLocaleString()}
+              </span>
             </div>
-          ))}
+            <div className="salary-tracker-bar">
+              <div
+                className="salary-tracker-fill"
+                style={{
+                  width: `${capPercent}%`,
+                  background: overCap ? 'var(--primary)' : 'var(--success)',
+                }}
+              />
+            </div>
+          </div>
 
-          {error && <div style={{ background: '#e94560', color: '#fff', padding: 12, borderRadius: 6, marginTop: 8 }}>{error}</div>}
+          {/* Position slots */}
+          {LINEUP_POSITIONS.map((pos) => {
+            const picked = selections[pos];
+            return (
+              <div key={pos} className="pos-slot">
+                <span className="pos-label">{pos}</span>
+                {picked ? (
+                  <>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {picked.name}
+                      </div>
+                      {picked.nameCn && (
+                        <div className="text-muted" style={{ fontSize: 12 }}>{picked.nameCn}</div>
+                      )}
+                      <div className="text-muted" style={{ fontSize: 12 }}>
+                        {picked.team} · ${picked.cost.toLocaleString()}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removePlayer(pos)}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--primary)',
+                        cursor: 'pointer', fontSize: 18, padding: '4px 6px', minWidth: 32,
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-muted" style={{ fontSize: 14 }}>Pick a {pos}</span>
+                )}
+              </div>
+            );
+          })}
+
+          {error && <div className="alert alert-error mt-12">{error}</div>}
 
           <button
             onClick={handleSubmit}
             disabled={!isValid() || submitting}
-            style={{
-              width: '100%', marginTop: 16, background: isValid() ? '#e94560' : '#555',
-              color: '#fff', border: 'none', padding: '14px', borderRadius: 8,
-              fontWeight: 700, fontSize: 16, cursor: isValid() ? 'pointer' : 'not-allowed',
-            }}
+            className={`btn btn-full mt-16 ${isValid() ? 'btn-primary' : 'btn-ghost'}`}
           >
-            {submitting ? 'Submitting...' : 'Submit Lineup'}
+            {submitting ? 'Submitting…' : 'Submit Lineup'}
+          </button>
+
+          <button
+            className="btn btn-outline btn-full mt-8 mobile-only"
+            onClick={() => setActiveTab('pool')}
+          >
+            Browse Players →
           </button>
         </div>
 
-        {/* Right: player pool */}
-        <div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        {/* ── Player pool panel ── */}
+        <div className={`builder-panel${activeTab === 'pool' ? ' active' : ''}`}>
+          <div className="pos-tabs" style={{ marginBottom: 12 }}>
             {['ALL', ...LINEUP_POSITIONS].map((pos) => (
-              <button key={pos} onClick={() => setPosFilter(pos)}
-                style={{ background: posFilter === pos ? '#e94560' : '#16213e', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 20, cursor: 'pointer', fontSize: 13 }}>
+              <button
+                key={pos}
+                className={`pos-tab${posFilter === pos ? ' active' : ''}`}
+                onClick={() => setPosFilter(pos)}
+              >
                 {pos}
               </button>
             ))}
           </div>
 
-          <div style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
-            {filtered.map((player) => {
-              const alreadySelected = LINEUP_POSITIONS.some((pos) => selections[pos]?.id === player.id);
-              const positionFilled = selections[player.position] !== null;
-              return (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  onSelect={() => selectPlayer(player.position, player)}
-                  selected={alreadySelected}
-                  disabled={alreadySelected || (positionFilled && !alreadySelected)}
-                />
-              );
-            })}
+          <div
+            className="card"
+            style={{ padding: 0, overflow: 'hidden', maxHeight: 'calc(100dvh - 260px)', overflowY: 'auto' }}
+          >
+            {filtered.length === 0 ? (
+              <div className="empty">No players found</div>
+            ) : (
+              filtered.map((player) => {
+                const alreadySelected = LINEUP_POSITIONS.some((p) => selections[p]?.id === player.id);
+                const positionFilled = selections[player.position] !== null && !alreadySelected;
+                return (
+                  <div
+                    key={player.id}
+                    className={`player-item${alreadySelected ? ' selected' : ''}${positionFilled ? ' disabled' : ''}`}
+                    onClick={() => !positionFilled && selectPlayer(player.position, player)}
+                  >
+                    <span className="player-pos-badge">{player.position}</span>
+                    <div className="player-info">
+                      <div className="player-name">{player.name}</div>
+                      <div className="player-sub">
+                        {player.nameCn ? `${player.nameCn} · ` : ''}{player.team}
+                        {player.seasonStats ? ` · ${player.seasonStats.ppg}pt ${player.seasonStats.rpg}rb ${player.seasonStats.apg}as` : ''}
+                      </div>
+                    </div>
+                    <span className="player-cost">${player.cost.toLocaleString()}</span>
+                    {alreadySelected && <span className="player-check">✓</span>}
+                  </div>
+                );
+              })
+            )}
           </div>
+
+          <button
+            className="btn btn-ghost btn-full mt-8 mobile-only"
+            onClick={() => setActiveTab('lineup')}
+          >
+            ← View My Lineup
+          </button>
         </div>
       </div>
     </div>

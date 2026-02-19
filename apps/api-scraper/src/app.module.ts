@@ -17,10 +17,10 @@ import { ScraperModule } from './scraper/scraper.module';
         host: config.get('DB_HOST', 'localhost'),
         port: config.get<number>('DB_PORT', 3306),
         username: config.get('DB_USERNAME', 'root'),
-        password: config.get('DB_PASSWORD', 'password'),
+        password: config.get('DB_PASSWORD', ''),
         database: config.get('DB_DATABASE', 'fantasy_nba'),
         entities: Object.values(entities),
-        synchronize: false,
+        synchronize: true, // auto-create ext_id_map table in dev
         logging: false,
       }),
     }),

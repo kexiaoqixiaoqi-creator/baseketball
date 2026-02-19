@@ -14,21 +14,29 @@ interface GameDay {
 interface RankEntry {
   rank: number;
   username: string;
-  totalScore: number;
-  lineupId: number;
+  totalScore: number | null;
 }
 
 export function Home() {
   const [currentDay, setCurrentDay] = useState<GameDay | null>(null);
+  const [noActiveDay, setNoActiveDay] = useState(false);
   const [rankings, setRankings] = useState<RankEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    gameDaysApi.current()
+    let allDaysPromise: Promise<GameDay[]>;
+
+    gameDaysApi
+      .current()
       .then((gd: GameDay) => {
         setCurrentDay(gd);
-        // Load rankings for official room (id=1) for the latest completed day
-        return gameDaysApi.list();
+        allDaysPromise = gameDaysApi.list();
+        return allDaysPromise;
+      })
+      .catch(() => {
+        setNoActiveDay(true);
+        allDaysPromise = gameDaysApi.list();
+        return allDaysPromise;
       })
       .then(async (allDays: GameDay[]) => {
         const completed = allDays.find((d: GameDay) => d.status === 'completed');
@@ -41,60 +49,79 @@ export function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div style={{ color: '#fff', padding: 32 }}>Loading...</div>;
+  if (loading) return <div className="loading">Loading…</div>;
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
-      <h1 style={{ color: '#fff', marginBottom: 8 }}>Fantasy NBA</h1>
-      <p style={{ color: '#aaa', marginBottom: 32 }}>Pick your lineup, beat the competition</p>
+    <div className="page">
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800 }}>Fantasy NBA</h1>
+        <p className="text-muted mt-4" style={{ fontSize: 14 }}>Build your dream lineup and compete</p>
+      </div>
 
+      {/* Active game day card */}
       {currentDay ? (
-        <div style={{ background: '#16213e', borderRadius: 12, padding: 24, marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div
+          className="card"
+          style={{ marginBottom: 16, borderLeft: '3px solid var(--success)' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: 12,
+            }}
+          >
             <div>
-              <h2 style={{ color: '#fff', margin: 0 }}>Today's Game Day</h2>
-              <p style={{ color: '#aaa', margin: '4px 0 0' }}>{currentDay.date}</p>
+              <div style={{ fontWeight: 700, fontSize: 17 }}>{currentDay.date}</div>
+              <div className="text-muted mt-4" style={{ fontSize: 13 }}>
+                Salary cap:{' '}
+                <span style={{ color: 'var(--warning)', fontWeight: 600 }}>
+                  ${currentDay.salaryCap.toLocaleString()}
+                </span>
+              </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ background: currentDay.status === 'active' ? '#27ae60' : '#888', color: '#fff', padding: '4px 12px', borderRadius: 20, fontSize: 13 }}>
-                {currentDay.status.toUpperCase()}
-              </span>
-              <p style={{ color: '#f39c12', margin: '8px 0 0', fontSize: 14 }}>Cap: ${currentDay.salaryCap.toLocaleString()}</p>
-            </div>
+            <span className={`badge badge-${currentDay.status}`}>{currentDay.status}</span>
           </div>
-          <div style={{ marginBottom: 16 }}>
+
+          <div style={{ marginBottom: 14 }}>
             {currentDay.games.map((g) => (
-              <div key={g.id} style={{ color: '#ccc', padding: '6px 0', borderBottom: '1px solid #1a1a2e', fontSize: 14 }}>
-                {g.homeTeam} vs {g.awayTeam}
-                <span style={{ float: 'right', color: '#888' }}>{g.status}</span>
+              <div key={g.id} className="game-row">
+                <span style={{ fontWeight: 500 }}>
+                  {g.homeTeam} <span className="text-muted">vs</span> {g.awayTeam}
+                </span>
+                <span className="text-muted" style={{ fontSize: 13 }}>{g.status}</span>
               </div>
             ))}
           </div>
-          <Link to={`/lineup/${currentDay.id}`}
-            style={{ display: 'inline-block', background: '#e94560', color: '#fff', padding: '12px 24px', borderRadius: 8, textDecoration: 'none', fontWeight: 700 }}>
-            Build My Lineup
+
+          <Link to={`/lineup/${currentDay.id}`} className="btn btn-primary btn-full">
+            Build My Lineup →
           </Link>
         </div>
-      ) : (
-        <div style={{ background: '#16213e', borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 32 }}>
-          <p style={{ color: '#aaa' }}>No active game day. Check back soon!</p>
+      ) : noActiveDay ? (
+        <div className="card" style={{ textAlign: 'center', marginBottom: 16, padding: 32 }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
+          <p className="text-muted">No active game day. Check back soon!</p>
         </div>
-      )}
+      ) : null}
 
+      {/* Latest rankings */}
       {rankings.length > 0 && (
-        <div style={{ background: '#16213e', borderRadius: 12, padding: 24 }}>
-          <h3 style={{ color: '#fff', marginBottom: 16 }}>Latest Rankings (Official Room)</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              {rankings.slice(0, 10).map((r) => (
-                <tr key={r.lineupId} style={{ borderBottom: '1px solid #1a1a2e' }}>
-                  <td style={{ padding: '8px 0', color: r.rank <= 3 ? '#f39c12' : '#aaa', width: 40 }}>#{r.rank}</td>
-                  <td style={{ padding: '8px 0', color: '#fff' }}>{r.username}</td>
-                  <td style={{ padding: '8px 0', textAlign: 'right', color: '#27ae60', fontWeight: 600 }}>{r.totalScore.toFixed(1)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700 }}>Latest Rankings</h3>
+            <p className="text-muted mt-4" style={{ fontSize: 12 }}>Official room · Most recent scored game day</p>
+          </div>
+          {rankings.slice(0, 10).map((r) => (
+            <div key={r.rank} className="rank-item">
+              <span className={`rank-num rank-${r.rank <= 3 ? r.rank : 'other'}`}>#{r.rank}</span>
+              <span style={{ flex: 1, fontWeight: 500 }}>{r.username}</span>
+              <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: 16 }}>
+                {r.totalScore !== null ? (r.totalScore as number).toFixed(1) : '—'}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

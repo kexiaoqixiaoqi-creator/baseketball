@@ -13,4 +13,6 @@ export const lineupsApi = {
 
   my: (gameDayId: number, roomId: number) =>
     apiClient.get('/lineups/my', { params: { gameDayId, roomId } }).then((r) => r.data),
+
+  history: () => apiClient.get('/lineups/history').then((r) => r.data),
 };

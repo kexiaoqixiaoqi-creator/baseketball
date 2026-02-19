@@ -1,35 +1,39 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 
 export function Navbar() {
   const { user, logout, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
-    <nav style={{ background: '#1a1a2e', color: '#fff', padding: '0 24px', display: 'flex', alignItems: 'center', height: 60, gap: 24 }}>
-      <Link to="/" style={{ color: '#e94560', fontWeight: 700, fontSize: 20, textDecoration: 'none' }}>
-        Fantasy NBA
-      </Link>
-      <Link to="/" style={{ color: '#fff', textDecoration: 'none' }}>Home</Link>
-      <Link to="/rooms" style={{ color: '#fff', textDecoration: 'none' }}>Rooms</Link>
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+    <nav className="top-nav">
+      <Link to="/" className="top-nav-brand">🏀 Fantasy NBA</Link>
+
+      <div className="top-nav-links">
+        <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Home</NavLink>
+        <NavLink to="/rooms" className={({ isActive }) => isActive ? 'active' : ''}>Rooms</NavLink>
+        {isAuthenticated() && (
+          <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>
+        )}
+      </div>
+
+      <div className="top-nav-spacer" />
+
+      <div className="top-nav-right">
         {isAuthenticated() ? (
           <>
-            <span style={{ color: '#aaa' }}>Hi, {user?.username}</span>
-            <Link to="/profile" style={{ color: '#fff', textDecoration: 'none' }}>Profile</Link>
-            <button onClick={handleLogout} style={{ background: '#e94560', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: 4, cursor: 'pointer' }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{user?.username}</span>
+            <button
+              onClick={() => { logout(); navigate('/login'); }}
+              className="btn btn-outline btn-sm"
+            >
               Logout
             </button>
           </>
         ) : (
           <>
-            <Link to="/login" style={{ color: '#fff', textDecoration: 'none' }}>Login</Link>
-            <Link to="/register" style={{ color: '#e94560', fontWeight: 600, textDecoration: 'none' }}>Register</Link>
+            <Link to="/login" className="btn btn-ghost btn-sm">Login</Link>
+            <Link to="/register" className="btn btn-primary btn-sm">Register</Link>
           </>
         )}
       </div>

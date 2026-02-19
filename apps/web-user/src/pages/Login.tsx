@@ -27,22 +27,49 @@ export function Login() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', padding: 24 }}>
-      <h2 style={{ color: '#fff', marginBottom: 24 }}>Login</h2>
-      {error && <div style={{ background: '#e94560', color: '#fff', padding: '10px 16px', borderRadius: 4, marginBottom: 16 }}>{error}</div>}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-          style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #333', background: '#16213e', color: '#fff', fontSize: 15 }} required />
-        <input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-          style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #333', background: '#16213e', color: '#fff', fontSize: 15 }} required />
-        <button type="submit" disabled={loading}
-          style={{ background: '#e94560', color: '#fff', border: 'none', padding: '12px', borderRadius: 6, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-      <p style={{ color: '#aaa', marginTop: 16, textAlign: 'center' }}>
-        No account? <Link to="/register" style={{ color: '#e94560' }}>Register</Link>
-      </p>
+    <div className="page-narrow">
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{ fontSize: 48, marginBottom: 10 }}>🏀</div>
+        <h1 style={{ fontSize: 24, fontWeight: 800 }}>Welcome back</h1>
+        <p className="text-muted mt-4" style={{ fontSize: 14 }}>Sign in to your account</p>
+      </div>
+
+      <div className="card">
+        {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>{error}</div>}
+        <form onSubmit={handleSubmit} className="form-stack">
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="input"
+              required
+              autoComplete="email"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="input"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+          <button type="submit" disabled={loading} className="btn btn-primary btn-full" style={{ marginTop: 4 }}>
+            {loading ? 'Signing in…' : 'Sign In'}
+          </button>
+        </form>
+        <p className="text-muted mt-16" style={{ textAlign: 'center', fontSize: 14 }}>
+          No account?{' '}
+          <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>Register</Link>
+        </p>
+      </div>
     </div>
   );
 }

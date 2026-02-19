@@ -6,6 +6,12 @@ import { computePlayerCosts, CURRENT_SEASON } from '@fantasy-nba/shared';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 
+export interface PlayerFilter {
+  search?: string;
+  position?: string;
+  team?: string;
+}
+
 @Injectable()
 export class PlayersService {
   constructor(
@@ -13,11 +19,23 @@ export class PlayersService {
     @InjectRepository(PlayerSeasonStats) private statsRepo: Repository<PlayerSeasonStats>,
   ) {}
 
-  findAll() {
-    return this.playerRepo.find({
-      relations: ['seasonStats'],
-      order: { name: 'ASC' },
-    });
+  async findAll(filter: PlayerFilter = {}) {
+    const qb = this.playerRepo
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.seasonStats', 'ss')
+      .orderBy('p.name', 'ASC');
+
+    if (filter.search) {
+      qb.andWhere('(p.name LIKE :s OR p.name_cn LIKE :s)', { s: `%${filter.search}%` });
+    }
+    if (filter.position) {
+      qb.andWhere('p.position = :position', { position: filter.position });
+    }
+    if (filter.team) {
+      qb.andWhere('p.team LIKE :team', { team: `%${filter.team}%` });
+    }
+
+    return qb.getMany();
   }
 
   async findOne(id: number) {

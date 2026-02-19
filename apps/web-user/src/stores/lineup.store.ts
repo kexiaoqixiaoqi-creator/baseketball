@@ -4,6 +4,7 @@ import { LINEUP_POSITIONS } from '@fantasy-nba/shared';
 export interface PlayerSlot {
   id: number;
   name: string;
+  nameCn?: string | null;
   team: string;
   position: string;
   cost: number;

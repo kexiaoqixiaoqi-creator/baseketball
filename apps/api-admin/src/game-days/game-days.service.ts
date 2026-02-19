@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { GameDay, Game, Lineup, Room, GamePlayerStats } from '@fantasy-nba/db';
 import { computeFantasyScore, ScoreWeights } from '@fantasy-nba/shared';
 import { CreateGameDayDto } from './dto/create-game-day.dto';
@@ -12,8 +12,7 @@ export class GameDaysService {
     @InjectRepository(Game) private gameRepo: Repository<Game>,
     @InjectRepository(Lineup) private lineupRepo: Repository<Lineup>,
     @InjectRepository(Room) private roomRepo: Repository<Room>,
-    @InjectRepository(GamePlayerStats)
-    private gameStatsRepo: Repository<GamePlayerStats>,
+    @InjectRepository(GamePlayerStats) private gameStatsRepo: Repository<GamePlayerStats>,
   ) {}
 
   findAll() {
@@ -40,6 +39,27 @@ export class GameDaysService {
     return this.findOne(id);
   }
 
+  async getLineups(gameDayId: number) {
+    const gd = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
+    if (!gd) throw new NotFoundException('Game day not found');
+
+    const lineups = await this.lineupRepo.find({
+      where: { gameDayId },
+      relations: ['user', 'room'],
+      order: { totalScore: 'DESC' },
+    });
+
+    return lineups.map((l) => ({
+      id: l.id,
+      user: { id: l.userId, username: l.user?.username ?? '—' },
+      room: { id: l.roomId, name: l.room?.name ?? '—' },
+      players: { pg: l.pgId, sg: l.sgId, sf: l.sfId, pf: l.pfId, c: l.cId },
+      totalCost: l.totalCost,
+      totalScore: l.totalScore !== null ? Number(l.totalScore) : null,
+      createdAt: l.createdAt,
+    }));
+  }
+
   async complete(gameDayId: number) {
     const gameDay = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
     if (!gameDay) throw new NotFoundException('Game day not found');
@@ -47,13 +67,9 @@ export class GameDaysService {
       throw new BadRequestException('Game day is already completed');
     }
 
-    // Mark all games as completed
     await this.gameRepo.update({ gameDayId }, { status: 'completed' });
 
-    // Load all lineups for this game day
     const lineups = await this.lineupRepo.find({ where: { gameDayId } });
-
-    // Cache rooms to avoid re-querying
     const roomCache = new Map<number, Room>();
 
     for (const lineup of lineups) {
@@ -76,7 +92,6 @@ export class GameDaysService {
 
       const playerIds = [lineup.pgId, lineup.sgId, lineup.sfId, lineup.pfId, lineup.cId];
 
-      // Load actual game stats for these players on this game day
       const statsRows = await this.gameStatsRepo
         .createQueryBuilder('gps')
         .innerJoin('gps.game', 'g')
@@ -87,17 +102,9 @@ export class GameDaysService {
       let totalScore = 0;
       for (const stat of statsRows) {
         const score = computeFantasyScore(
-          {
-            pts: stat.pts,
-            reb: stat.reb,
-            ast: stat.ast,
-            stl: stat.stl,
-            blk: stat.blk,
-            to: stat.toVal,
-          },
+          { pts: stat.pts, reb: stat.reb, ast: stat.ast, stl: stat.stl, blk: stat.blk, to: stat.toVal },
           weights,
         );
-        // Store individual fantasy score on game stat
         await this.gameStatsRepo.update(stat.id, { fantasyScore: score });
         totalScore += score;
       }
@@ -105,9 +112,7 @@ export class GameDaysService {
       await this.lineupRepo.update(lineup.id, { totalScore: Number(totalScore.toFixed(2)) });
     }
 
-    // Mark game day as completed
     await this.gameDayRepo.update(gameDayId, { status: 'completed' });
-
     return { message: `Game day ${gameDayId} completed. ${lineups.length} lineups scored.` };
   }
 }

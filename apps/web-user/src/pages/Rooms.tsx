@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { roomsApi } from '../api/rooms.api';
+import { useAuthStore } from '../stores/auth.store';
 
 interface Room {
   id: number;
@@ -15,17 +16,18 @@ export function Rooms() {
   const [showCreate, setShowCreate] = useState(false);
   const [newRoom, setNewRoom] = useState({ name: '', salaryCap: 50000 });
   const [creating, setCreating] = useState(false);
+  const { isAuthenticated } = useAuthStore();
 
-  useEffect(() => {
-    roomsApi.list().then(setRooms).catch(() => {});
-  }, []);
+  const load = () => roomsApi.list().then(setRooms).catch(() => {});
+
+  useEffect(() => { load(); }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     try {
-      const created = await roomsApi.create(newRoom);
-      setRooms([...rooms, created]);
+      await roomsApi.create(newRoom);
+      await load();
       setShowCreate(false);
       setNewRoom({ name: '', salaryCap: 50000 });
     } catch {
@@ -36,46 +38,75 @@ export function Rooms() {
   };
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ color: '#fff', margin: 0 }}>Rooms</h2>
-        <button onClick={() => setShowCreate(!showCreate)}
-          style={{ background: '#e94560', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
-          {showCreate ? 'Cancel' : '+ Create Room'}
-        </button>
+    <div className="page">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 800 }}>Rooms</h2>
+          <p className="text-muted mt-4" style={{ fontSize: 13 }}>{rooms.length} rooms</p>
+        </div>
+        {isAuthenticated() && (
+          <button
+            onClick={() => setShowCreate((v) => !v)}
+            className={`btn btn-sm ${showCreate ? 'btn-ghost' : 'btn-primary'}`}
+          >
+            {showCreate ? 'Cancel' : '+ Create'}
+          </button>
+        )}
       </div>
 
       {showCreate && (
-        <form onSubmit={handleCreate} style={{ background: '#16213e', borderRadius: 12, padding: 24, marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <h3 style={{ color: '#fff', margin: 0 }}>Create Custom Room</h3>
-          <input type="text" placeholder="Room name" value={newRoom.name} onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
-            style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #333', background: '#0f3460', color: '#fff', fontSize: 15 }} required />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <label style={{ color: '#aaa' }}>Salary Cap: $</label>
-            <input type="number" value={newRoom.salaryCap} onChange={(e) => setNewRoom({ ...newRoom, salaryCap: Number(e.target.value) })}
-              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #333', background: '#0f3460', color: '#fff', width: 120 }} />
-          </div>
-          <button type="submit" disabled={creating}
-            style={{ background: '#27ae60', color: '#fff', border: 'none', padding: '10px', borderRadius: 6, fontWeight: 700, cursor: 'pointer', width: 160 }}>
-            {creating ? 'Creating...' : 'Create Room'}
-          </button>
-        </form>
+        <div className="card" style={{ marginBottom: 16 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>New Custom Room</h3>
+          <form onSubmit={handleCreate} className="form-stack">
+            <div className="form-group">
+              <label className="form-label">Room Name</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="My Custom Room"
+                value={newRoom.name}
+                onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Salary Cap</label>
+              <input
+                type="number"
+                className="input"
+                value={newRoom.salaryCap}
+                onChange={(e) => setNewRoom({ ...newRoom, salaryCap: Number(e.target.value) })}
+              />
+            </div>
+            <button type="submit" disabled={creating} className="btn btn-success">
+              {creating ? 'Creating…' : 'Create Room'}
+            </button>
+          </form>
+        </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {rooms.map((room) => (
           <Link key={room.id} to={`/rooms/${room.id}`} style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#16213e', borderRadius: 10, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div
+              className="card"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderLeft: `3px solid ${room.isOfficial ? 'var(--primary)' : 'var(--border)'}`,
+              }}
+            >
               <div>
-                <div style={{ color: '#fff', fontWeight: 600 }}>
+                <div style={{ fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   {room.name}
-                  {room.isOfficial && <span style={{ background: '#e94560', color: '#fff', fontSize: 11, padding: '2px 8px', borderRadius: 10, marginLeft: 8 }}>OFFICIAL</span>}
+                  {room.isOfficial && <span className="badge badge-official">Official</span>}
                 </div>
-                <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
-                  Cap: ${room.salaryCap.toLocaleString()} · {room.memberCount} members
+                <div className="text-muted mt-4" style={{ fontSize: 13 }}>
+                  Cap: ${room.salaryCap.toLocaleString()} · {room.memberCount ?? 0} members
                 </div>
               </div>
-              <span style={{ color: '#e94560', fontSize: 20 }}>›</span>
+              <span style={{ color: 'var(--primary)', fontSize: 22, marginLeft: 8 }}>›</span>
             </div>
           </Link>
         ))}

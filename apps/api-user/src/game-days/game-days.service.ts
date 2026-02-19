@@ -63,6 +63,7 @@ export class GameDaysService {
       return {
         id: p.id,
         name: p.name,
+        nameCn: p.nameCn ?? null,
         position: p.position,
         team: p.team,
         jerseyNumber: p.jerseyNumber,

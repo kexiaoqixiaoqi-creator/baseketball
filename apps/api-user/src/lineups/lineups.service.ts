@@ -185,6 +185,24 @@ export class LineupsService {
     };
   }
 
+  async getHistory(userId: number) {
+    const lineups = await this.lineupRepo.find({
+      where: { userId },
+      relations: ['gameDay', 'room'],
+      order: { id: 'DESC' },
+    });
+    return lineups.map((l) => ({
+      id: l.id,
+      gameDayId: l.gameDayId,
+      gameDayDate: l.gameDay?.date ?? null,
+      roomId: l.roomId,
+      roomName: l.room?.name ?? null,
+      totalCost: l.totalCost,
+      totalScore: l.totalScore !== null ? Number(l.totalScore) : null,
+      createdAt: l.createdAt,
+    }));
+  }
+
   private async getEligiblePlayerIds(gameDayId: number): Promise<Set<number>> {
     const stats = await this.gameStatsRepo
       .createQueryBuilder('gps')

@@ -14,5 +14,3 @@ export const SCORE_WEIGHTS_DEFAULT = {
 
 export const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C'] as const;
 export type Position = (typeof POSITIONS)[number];
-
-export const LINEUP_POSITIONS: Position[] = ['PG', 'SG', 'SF', 'PF', 'C'];

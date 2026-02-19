@@ -27,6 +27,11 @@ export class GameDaysController {
     return this.gameDaysService.findOne(id);
   }
 
+  @Get(':id/lineups')
+  getLineups(@Param('id', ParseIntPipe) id: number) {
+    return this.gameDaysService.getLineups(id);
+  }
+
   @Post()
   create(@Body() dto: CreateGameDayDto) {
     return this.gameDaysService.create(dto);

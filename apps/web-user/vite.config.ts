@@ -9,7 +9,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@fantasy-nba/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@fantasy-nba/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
     },
+  },
+  optimizeDeps: {
+    exclude: ['@fantasy-nba/shared'],
   },
 })

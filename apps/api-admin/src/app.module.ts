@@ -7,6 +7,7 @@ import { PlayersModule } from './players/players.module';
 import { GameDaysModule } from './game-days/game-days.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { UsersModule } from './users/users.module';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({
   imports: [
@@ -19,10 +20,10 @@ import { UsersModule } from './users/users.module';
         host: config.get('DB_HOST', 'localhost'),
         port: config.get<number>('DB_PORT', 3306),
         username: config.get('DB_USERNAME', 'root'),
-        password: config.get('DB_PASSWORD', 'password'),
+        password: config.get('DB_PASSWORD', ''),
         database: config.get('DB_DATABASE', 'fantasy_nba'),
         entities: Object.values(entities),
-        synchronize: false,
+        synchronize: true,
         logging: false,
       }),
     }),
@@ -31,6 +32,7 @@ import { UsersModule } from './users/users.module';
     GameDaysModule,
     RoomsModule,
     UsersModule,
+    TeamsModule,
   ],
 })
 export class AppModule {}

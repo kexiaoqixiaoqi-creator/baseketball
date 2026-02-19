@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -20,8 +21,12 @@ export class PlayersController {
   constructor(private playersService: PlayersService) {}
 
   @Get()
-  findAll() {
-    return this.playersService.findAll();
+  findAll(
+    @Query('search') search?: string,
+    @Query('position') position?: string,
+    @Query('team') team?: string,
+  ) {
+    return this.playersService.findAll({ search, position, team });
   }
 
   @Get(':id')

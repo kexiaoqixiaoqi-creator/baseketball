@@ -9,7 +9,10 @@
       "Bash(mysql:*)",
       "Bash(brew services:*)",
       "Bash(curl:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs:*)",
+      "Bash(fuser:*)"
     ]
   }
 }

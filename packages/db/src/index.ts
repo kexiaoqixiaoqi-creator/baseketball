@@ -1,4 +1,5 @@
 export { User } from './entities/user.entity';
+export { Team } from './entities/team.entity';
 export { Player } from './entities/player.entity';
 export { PlayerSeasonStats } from './entities/player-season-stats.entity';
 export { GameDay } from './entities/game-day.entity';
@@ -7,3 +8,4 @@ export { GamePlayerStats } from './entities/game-player-stats.entity';
 export { Room } from './entities/room.entity';
 export { RoomMember } from './entities/room-member.entity';
 export { Lineup } from './entities/lineup.entity';
+export { ExtIdMap, ExtEntityType } from './entities/ext-id-map.entity';

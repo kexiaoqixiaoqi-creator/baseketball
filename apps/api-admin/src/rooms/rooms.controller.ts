@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { AdminGuard } from '../auth/admin.guard';
 import { RoomsService } from './rooms.service';
 
@@ -10,5 +10,18 @@ export class RoomsController {
   @Get()
   findAll() {
     return this.roomsService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.roomsService.findOne(id);
+  }
+
+  @Get(':id/rankings')
+  getRankings(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('gameDayId', ParseIntPipe) gameDayId: number,
+  ) {
+    return this.roomsService.getRankings(id, gameDayId);
   }
 }

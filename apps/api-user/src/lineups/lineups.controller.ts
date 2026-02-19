@@ -25,6 +25,11 @@ export class LineupsController {
     return this.lineupsService.create(req.user.id, dto);
   }
 
+  @Get('history')
+  history(@Request() req: { user: { id: number } }) {
+    return this.lineupsService.getHistory(req.user.id);
+  }
+
   @Get('my')
   findMy(
     @Request() req: { user: { id: number } },

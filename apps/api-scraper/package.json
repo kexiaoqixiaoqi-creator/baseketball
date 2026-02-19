@@ -22,6 +22,7 @@
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/schedule": "^5.0.0",
+    "axios": "^1.7.0",
     "@fantasy-nba/shared": "*",
     "@fantasy-nba/db": "*",
     "typeorm": "^0.3.0",
