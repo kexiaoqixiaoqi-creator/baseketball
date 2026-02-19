@@ -1,0 +1,12 @@
+import { apiClient } from './client';
+
+export const gameDaysApi = {
+  current: () => apiClient.get('/game-days/current').then((r) => r.data),
+
+  get: (id: number) => apiClient.get(`/game-days/${id}`).then((r) => r.data),
+
+  list: () => apiClient.get('/game-days').then((r) => r.data),
+
+  players: (gameDayId: number) =>
+    apiClient.get(`/game-days/${gameDayId}/players`).then((r) => r.data),
+};

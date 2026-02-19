@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(nest:*)",
+      "Bash(npx --yes false:*)",
+      "Bash(npx:*)",
+      "Bash(mysql:*)",
+      "Bash(brew services:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)"
+    ]
+  }
+}

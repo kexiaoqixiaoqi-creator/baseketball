@@ -1,0 +1,21 @@
+{
+  "name": "fantasy-nba",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api-user": "npm run start:dev --workspace=apps/api-user",
+    "dev:api-admin": "npm run start:dev --workspace=apps/api-admin",
+    "dev:api-scraper": "npm run start:dev --workspace=apps/api-scraper",
+    "dev:web-user": "npm run dev --workspace=apps/web-user",
+    "dev:web-admin": "npm run dev --workspace=apps/web-admin",
+    "dev": "concurrently \"npm:dev:api-user\" \"npm:dev:api-admin\" \"npm:dev:api-scraper\" \"npm:dev:web-user\" \"npm:dev:web-admin\"",
+    "seed": "npm run seed --workspace=apps/api-user"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
