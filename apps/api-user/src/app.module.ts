@@ -8,9 +8,17 @@ import { GameDaysModule } from './game-days/game-days.module';
 import { LineupsModule } from './lineups/lineups.module';
 import { RoomsModule } from './rooms/rooms.module';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV || 'development'}`,
+        '.env',
+      ],
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -22,8 +30,8 @@ import { RoomsModule } from './rooms/rooms.module';
         password: config.get('DB_PASSWORD', 'password'),
         database: config.get('DB_DATABASE', 'fantasy_nba'),
         entities: Object.values(entities),
-        synchronize: true,
-        logging: false,
+        synchronize: !isProduction,
+        logging: config.get('DB_LOGGING') === 'true',
       }),
     }),
     AuthModule,

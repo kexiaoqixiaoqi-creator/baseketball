@@ -14,7 +14,8 @@ adminClient.interceptors.request.use((config) => {
 adminClient.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401 || err.response?.status === 403) {
+    const isLoginRequest = err.config?.url?.includes('/auth/login');
+    if (!isLoginRequest && (err.response?.status === 401 || err.response?.status === 403)) {
       localStorage.removeItem('admin_token');
       window.location.href = '/login';
     }

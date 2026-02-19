@@ -8,6 +8,7 @@ import { GameDays } from './pages/GameDays';
 import { GameDayDetail } from './pages/GameDayDetail';
 import { RoomsAdmin } from './pages/RoomsAdmin';
 import { Users } from './pages/Users';
+import { Scraper } from './pages/Scraper';
 
 const S = {
   layout: { display: 'flex', minHeight: '100vh' } as React.CSSProperties,
@@ -32,6 +33,7 @@ function AdminLayout() {
     { to: '/game-days', label: '📅 Game Days' },
     { to: '/rooms', label: '🏠 Rooms' },
     { to: '/users', label: '👥 Users' },
+    { to: '/scraper', label: '🔄 Data Sync', end: true },
   ];
 
   return (
@@ -86,6 +88,7 @@ export default function App() {
           <Route path="/game-days/:id" element={<GameDayDetail />} />
           <Route path="/rooms" element={<RoomsAdmin />} />
           <Route path="/users" element={<Users />} />
+          <Route path="/scraper" element={<Scraper />} />
         </Route>
       </Routes>
     </BrowserRouter>

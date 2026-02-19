@@ -1,11 +1,15 @@
 import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
-dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+
+const root = path.resolve(process.cwd());
+dotenv.config({ path: path.join(root, '.env') });
+dotenv.config({ path: path.join(root, `.env.${process.env.NODE_ENV || 'development'}`) });
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import {
   User,
+  Team,
   Player,
   PlayerSeasonStats,
   GameDay,
@@ -14,6 +18,7 @@ import {
   Room,
   RoomMember,
   Lineup,
+  ExtIdMap,
 } from '@fantasy-nba/db';
 import { computeFantasyScore, computePlayerCosts, SCORE_WEIGHTS_DEFAULT, CURRENT_SEASON } from '@fantasy-nba/shared';
 
@@ -193,7 +198,7 @@ const dataSource = new DataSource({
   username: process.env.DB_USERNAME ?? 'root',
   password: process.env.DB_PASSWORD ?? '',
   database: process.env.DB_DATABASE ?? 'fantasy_nba',
-  entities: [User, Player, PlayerSeasonStats, GameDay, Game, GamePlayerStats, Room, RoomMember, Lineup],
+  entities: [User, Team, Player, PlayerSeasonStats, GameDay, Game, GamePlayerStats, Room, RoomMember, Lineup, ExtIdMap],
   synchronize: true,
   logging: false,
 });
@@ -229,7 +234,7 @@ async function seed() {
 
   // Clear all tables in reverse dependency order
   await dataSource.query('SET FOREIGN_KEY_CHECKS=0');
-  const repos = [Lineup, RoomMember, Room, GamePlayerStats, Game, GameDay, PlayerSeasonStats, Player, User];
+  const repos = [Lineup, RoomMember, Room, GamePlayerStats, Game, GameDay, PlayerSeasonStats, Player, User, ExtIdMap, Team];
   for (const entity of repos) {
     await dataSource.getRepository(entity).clear();
   }
