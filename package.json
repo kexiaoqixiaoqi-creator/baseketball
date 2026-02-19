@@ -7,13 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:api-user": "cross-env NODE_ENV=development npm run start:dev --workspace=apps/api-user",
-    "dev:api-admin": "cross-env NODE_ENV=development npm run start:dev --workspace=apps/api-admin",
-    "dev:api-scraper": "cross-env NODE_ENV=development npm run start:dev --workspace=apps/api-scraper",
-    "dev:web-user": "npm run dev --workspace=apps/web-user",
-    "dev:web-admin": "npm run dev --workspace=apps/web-admin",
-    "dev": "concurrently \"npm:dev:api-user\" \"npm:dev:api-admin\" \"npm:dev:web-user\" \"npm:dev:web-admin\"",
-    "seed": "npm run seed --workspace=apps/api-user"
+    "dev:api": "cross-env NODE_ENV=development npm run start:dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev": "concurrently \"npm:dev:api\" \"npm:dev:web\""
   },
   "devDependencies": {
     "concurrently": "^9.0.0",

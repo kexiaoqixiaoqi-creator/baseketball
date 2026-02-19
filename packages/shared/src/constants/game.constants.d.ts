@@ -12,4 +12,3 @@ export declare const SCORE_WEIGHTS_DEFAULT: {
 };
 export declare const POSITIONS: readonly ["PG", "SG", "SF", "PF", "C"];
 export type Position = (typeof POSITIONS)[number];
-export declare const LINEUP_POSITIONS: Position[];

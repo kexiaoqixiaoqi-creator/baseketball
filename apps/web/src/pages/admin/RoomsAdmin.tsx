@@ -1,0 +1,144 @@
+import { useEffect, useState } from 'react';
+import { adminClient } from '../../api/admin-client';
+
+interface Room { id: number; name: string; isOfficial: boolean; salaryCap: number; members: { id: number }[] }
+interface Ranking { rank: number; user: { id: number; username: string }; totalScore: number | null; totalCost: number }
+interface GameDay { id: number; date: string; status: string }
+
+export function RoomsAdmin() {
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Room | null>(null);
+  const [gameDays, setGameDays] = useState<GameDay[]>([]);
+  const [gameDayId, setGameDayId] = useState('');
+  const [rankings, setRankings] = useState<Ranking[] | null>(null);
+  const [rankLoading, setRankLoading] = useState(false);
+
+  useEffect(() => {
+    Promise.all([adminClient.get('/rooms'), adminClient.get('/game-days')])
+      .then(([r, gd]) => { setRooms(r.data); setGameDays(gd.data); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const loadRankings = async (roomId: number, gdId: string) => {
+    if (!gdId) return;
+    setRankLoading(true);
+    setRankings(null);
+    try {
+      const res = await adminClient.get(`/rooms/${roomId}/rankings?gameDayId=${gdId}`);
+      setRankings(res.data);
+    } catch { setRankings([]); }
+    finally { setRankLoading(false); }
+  };
+
+  const handleView = (r: Room) => {
+    setSelected(r);
+    setRankings(null);
+    setGameDayId('');
+  };
+
+  const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', color: '#4a6380', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 };
+  const tdBase: React.CSSProperties = { padding: '9px 14px', fontSize: 13, borderBottom: '1px solid #1a2332' };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: 16 }}>
+      {/* Rooms list */}
+      <div>
+        <div style={{ marginBottom: 16 }}>
+          <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Rooms</h1>
+          <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>{rooms.length} rooms total</p>
+        </div>
+
+        {loading ? <div style={{ color: '#4a6380' }}>Loading...</div> : (
+          <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#0d1820' }}>
+                  {['#', 'Name', 'Type', 'Cap', 'Members', ''].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rooms.map((r) => (
+                  <tr key={r.id} style={{ background: selected?.id === r.id ? '#1e2d3d' : 'transparent' }}>
+                    <td style={{ ...tdBase, color: '#2d3f55' }}>{r.id}</td>
+                    <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>{r.name}</td>
+                    <td style={{ ...tdBase }}>
+                      <span style={{ background: r.isOfficial ? '#e9456022' : '#1e2d3d', color: r.isOfficial ? '#e94560' : '#8899aa', border: `1px solid ${r.isOfficial ? '#e9456044' : '#2d3f55'}`, padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                        {r.isOfficial ? 'OFFICIAL' : 'CUSTOM'}
+                      </span>
+                    </td>
+                    <td style={{ ...tdBase, color: '#f39c12' }}>${r.salaryCap?.toLocaleString()}</td>
+                    <td style={{ ...tdBase, color: '#8899aa' }}>{r.members?.length ?? 0}</td>
+                    <td style={{ ...tdBase }}>
+                      <button onClick={() => handleView(r)}
+                        style={{ background: '#1e2d3d', color: '#3498db', border: '1px solid #3498db44', padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
+                        Rankings
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Rankings panel */}
+      {selected && (
+        <div>
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h2 style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>Rankings — {selected.name}</h2>
+              <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>Select a game day to view</p>
+            </div>
+            <button onClick={() => setSelected(null)} style={{ background: 'transparent', color: '#4a6380', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <select value={gameDayId} onChange={(e) => setGameDayId(e.target.value)}
+              style={{ flex: 1, padding: '7px 10px', borderRadius: 6, border: '1px solid #2d3f55', background: '#0f1923', color: '#e0e0e0', fontSize: 13 }}>
+              <option value="">Select game day…</option>
+              {gameDays.map((gd) => (
+                <option key={gd.id} value={gd.id}>{gd.date} ({gd.status})</option>
+              ))}
+            </select>
+            <button onClick={() => loadRankings(selected.id, gameDayId)} disabled={!gameDayId || rankLoading}
+              style={{ background: '#3498db', color: '#fff', border: 'none', padding: '7px 16px', borderRadius: 6, cursor: gameDayId ? 'pointer' : 'default', opacity: gameDayId ? 1 : 0.5, fontSize: 13, fontWeight: 600 }}>
+              Load
+            </button>
+          </div>
+
+          {rankLoading && <div style={{ color: '#4a6380', padding: 12 }}>Loading rankings...</div>}
+
+          {rankings !== null && !rankLoading && (
+            rankings.length === 0 ? (
+              <div style={{ color: '#4a6380', background: '#131f2e', borderRadius: 10, padding: 20, textAlign: 'center' }}>No lineups for this game day.</div>
+            ) : (
+              <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#0d1820' }}>
+                      {['Rank', 'User', 'Cost', 'Score'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rankings.map((r) => (
+                      <tr key={r.rank}>
+                        <td style={{ ...tdBase, fontWeight: 700, fontSize: 15, color: r.rank === 1 ? '#f39c12' : r.rank === 2 ? '#8899aa' : r.rank === 3 ? '#cd7f32' : '#4a6380' }}>#{r.rank}</td>
+                        <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>{r.user.username}</td>
+                        <td style={{ ...tdBase, color: '#f39c12' }}>${r.totalCost.toLocaleString()}</td>
+                        <td style={{ ...tdBase, color: r.totalScore !== null ? '#27ae60' : '#2d3f55', fontWeight: 600 }}>
+                          {r.totalScore !== null ? r.totalScore.toFixed(2) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

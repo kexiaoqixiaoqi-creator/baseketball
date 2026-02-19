@@ -1,4 +1,4 @@
-import { Position } from '../constants/game.constants';
+import type { Position } from '../constants/game.constants';
 export interface SeasonStatsDto {
     ppg: number;
     rpg: number;

@@ -1,4 +1,5 @@
 export * from './constants/game.constants';
+export declare const LINEUP_POSITIONS: string[];
 export * from './utils/fantasy-score.util';
 export * from './types/player.types';
 export * from './types/game-day.types';
