@@ -74,6 +74,28 @@ export class RoomsService implements OnModuleInit {
     return rooms.map((r) => this.mapRoomForUser(r));
   }
 
+  /** 用于榜单筛选：官方房间 + 用户已加入的房间 */
+  async findForRankings(userId?: number) {
+    const official = await this.roomRepo.findOne({
+      where: { isOfficial: true },
+      relations: ['members'],
+    });
+    const result = [];
+    if (official) result.push(this.mapRoomForUser(official));
+    if (userId) {
+      const memberships = await this.roomMemberRepo.find({
+        where: { userId },
+        relations: ['room', 'room.members'],
+      });
+      for (const m of memberships) {
+        if (m.room && !m.room.isOfficial && !result.some((r: { id: number }) => r.id === m.room!.id)) {
+          result.push(this.mapRoomForUser(m.room));
+        }
+      }
+    }
+    return result;
+  }
+
   async findOneForUser(id: number) {
     const room = await this.roomRepo.findOne({ where: { id }, relations: ['members'] });
     if (!room) throw new NotFoundException('Room not found');

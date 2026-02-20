@@ -8,6 +8,7 @@ import {
   Player,
   PlayerSeasonStats,
   GamePlayerStats,
+  Game,
 } from '@fantasy-nba/db';
 import { GameDaysModule } from '../game-days/game-days.module';
 import { LineupsService } from './lineups.service';
@@ -23,6 +24,7 @@ import { LineupsController } from './lineups.controller';
       Player,
       PlayerSeasonStats,
       GamePlayerStats,
+      Game,
     ]),
     GameDaysModule,
   ],

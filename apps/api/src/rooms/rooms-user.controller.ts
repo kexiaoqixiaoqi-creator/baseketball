@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 
@@ -20,6 +21,12 @@ export class RoomsUserController {
   @Get()
   findAll() {
     return this.roomsService.findAllForUser();
+  }
+
+  @Get('for-rankings')
+  @UseGuards(OptionalJwtAuthGuard)
+  findForRankings(@Request() req: { user?: { id: number } }) {
+    return this.roomsService.findForRankings(req?.user?.id);
   }
 
   @Get('official')

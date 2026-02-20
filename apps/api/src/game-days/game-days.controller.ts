@@ -54,4 +54,9 @@ export class GameDaysController {
   complete(@Param('id', ParseIntPipe) id: number) {
     return this.gameDaysService.complete(id);
   }
+
+  @Post(':id/recalculate-salary-cap')
+  recalculateSalaryCap(@Param('id', ParseIntPipe) id: number) {
+    return this.gameDaysService.recalculateSalaryCap(id);
+  }
 }

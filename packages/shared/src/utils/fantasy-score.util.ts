@@ -98,9 +98,16 @@ export function computeCostFromSeasonStatsRaw(
   return computeCostFromSeasonStats(statLine, weights);
 }
 
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const idx = Math.min(sorted.length - 1, Math.floor(sorted.length * p));
+  return sorted[idx];
+}
+
 /**
- * 根据当日可选球员的平均 cost 和房间系数计算 salaryCap
- * 公式: salaryCap = avgCost × LINEUP_SLOTS × coefficient
+ * 根据当日可选球员的 cost 计算 salaryCap
+ * 公式: salaryCap = (P90×2 + P50×3) × coefficient
+ * 对应阵容：2 明星 + 3 角色球员；再乘以房间系数
  * 若无有效球员，返回 fallback
  */
 export function computeSalaryCapFromEligiblePlayers(
@@ -110,6 +117,9 @@ export function computeSalaryCapFromEligiblePlayers(
 ): number {
   const validCosts = costs.filter((c) => c > 0);
   if (validCosts.length === 0) return fallback ?? SALARY_CAP_OFFICIAL;
-  const avgCost = validCosts.reduce((a, b) => a + b, 0) / validCosts.length;
-  return Math.round(avgCost * LINEUP_SLOTS * coefficient);
+  const sorted = [...validCosts].sort((a, b) => a - b);
+  const p90 = percentile(sorted, 0.9);
+  const p50 = percentile(sorted, 0.5);
+  const baseCap = p90 * 2 + p50 * 3;
+  return Math.round(baseCap * coefficient);
 }

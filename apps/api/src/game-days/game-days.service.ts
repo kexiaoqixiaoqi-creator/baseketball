@@ -74,9 +74,9 @@ export class GameDaysService {
       }
     }
 
-    // 4. 根据当日参赛球员平均数据和关联 room 的 salaryCapCoefficient 计算并存储 salaryCap
+    // 4. 根据当日参赛球员和 official room 系数计算 salaryCap，存入表（get 时直接读取）
     if (defaultRoomId && officialRoom) {
-      const salaryCap = await this.getSalaryCapForRoom(gd.id, defaultRoomId);
+      const salaryCap = await this.computeSalaryCapForCreate(gd.id, defaultRoomId);
       await this.gameDayRepo.update(gd.id, { salaryCap });
     }
 
@@ -86,6 +86,17 @@ export class GameDaysService {
   async setStatus(id: number, status: string) {
     await this.gameDayRepo.update(id, { status });
     return this.findOne(id);
+  }
+
+  /** 重新计算并更新 salaryCap（基于当日可选球员 + official room 系数） */
+  async recalculateSalaryCap(gameDayId: number) {
+    const gd = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
+    if (!gd) throw new NotFoundException(`Game day ${gameDayId} not found`);
+    const officialRoom = await this.roomRepo.findOne({ where: { isOfficial: true } });
+    if (!officialRoom) throw new NotFoundException('Official room not found');
+    const salaryCap = await this.computeSalaryCapForCreate(gameDayId, officialRoom.id);
+    await this.gameDayRepo.update(gameDayId, { salaryCap });
+    return this.findOne(gameDayId);
   }
 
   async getPlayerStatsForGameDay(gameDayId: number) {
@@ -210,7 +221,7 @@ export class GameDaysService {
     });
     const salaryCaps = room
       ? await Promise.all(list.map((gd) => this.getSalaryCapForRoom(gd.id, room.id)))
-      : list.map(() => 50000);
+      : list.map((gd) => gd.salaryCap);
     return Promise.all(list.map((gd, i) => this.mapGameDayForUser(gd, salaryCaps[i])));
   }
 
@@ -239,10 +250,22 @@ export class GameDaysService {
     return this.mapGameDayForUser(gameDay, salaryCap);
   }
 
-  /** 根据 (gameDayId, roomId) 计算 salaryCap：当日可选球员平均 cost × LINEUP_SLOTS × room.salaryCapCoefficient */
-  async getSalaryCapForRoom(gameDayId: number, roomId: number): Promise<number> {
+  /** 创建时计算并存储 salaryCap 用（基于当日可选球员 + room 系数） */
+  private async computeSalaryCapForCreate(gameDayId: number, roomId: number): Promise<number> {
     const { costs, room } = await this.getEligiblePlayersData(gameDayId, roomId);
     return computeSalaryCapFromEligiblePlayers(costs, room.salaryCapCoefficient);
+  }
+
+  /** 从表读取 salaryCap 并按 room 系数缩放（公式线性于 coefficient，无需重算） */
+  async getSalaryCapForRoom(gameDayId: number, roomId: number): Promise<number> {
+    const gd = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
+    if (!gd) throw new NotFoundException(`Game day ${gameDayId} not found`);
+    const room = await this.roomRepo.findOne({ where: { id: roomId } });
+    if (!room) throw new NotFoundException('Room not found');
+    const officialRoom = await this.roomRepo.findOne({ where: { isOfficial: true } });
+    if (!officialRoom) return gd.salaryCap;
+    const scale = room.salaryCapCoefficient / officialRoom.salaryCapCoefficient;
+    return Math.round(gd.salaryCap * scale);
   }
 
   private async getEligiblePlayersData(gameDayId: number, roomId?: number) {
@@ -272,55 +295,105 @@ export class GameDaysService {
       if (g.awayTeamId != null) teamIds.add(g.awayTeamId);
     }
 
-    if (teamIds.size === 0) {
-      return { withCost: [], costs: [], room };
-    }
-
-    const players = await this.playerRepo
-      .createQueryBuilder('p')
-      .where('p.teamId IN (:...teamIds)', { teamIds: Array.from(teamIds) })
-      .leftJoinAndSelect(
-        'p.seasonStats',
-        'ss',
-        'ss.season = :season',
-        { season: CURRENT_SEASON },
-      )
-      .getMany();
+    const players =
+      teamIds.size === 0
+        ? []
+        : await this.playerRepo
+            .createQueryBuilder('p')
+            .where('p.teamId IN (:...teamIds)', { teamIds: Array.from(teamIds) })
+            .leftJoinAndSelect(
+              'p.seasonStats',
+              'ss',
+              'ss.season = :season',
+              { season: CURRENT_SEASON },
+            )
+            .getMany();
 
     const withCost = players.map((p) => {
       const stats = p.seasonStats?.[0];
       const cost = computeCostFromSeasonStatsRaw(stats, weights);
       return { p, stats, cost };
     });
-    return { withCost, costs: withCost.map((x) => x.cost), room };
+    return { withCost, costs: withCost.map((x) => x.cost), room, gameDay };
   }
 
   async getEligiblePlayers(gameDayId: number, roomId?: number) {
-    const { withCost, costs, room } = await this.getEligiblePlayersData(gameDayId, roomId);
-    const salaryCap = computeSalaryCapFromEligiblePlayers(costs, room.salaryCapCoefficient);
+    const { withCost, room, gameDay } = await this.getEligiblePlayersData(gameDayId, roomId);
+    const salaryCap = await this.getSalaryCapForRoom(gameDayId, room.id);
     withCost.sort((a, b) => b.cost - a.cost);
 
-    const players = withCost.map(({ p, stats, cost }) => ({
-      id: p.id,
-      name: p.name,
-      nameCn: p.nameCn ?? null,
-      position: p.position,
-      team: p.team,
-      jerseyNumber: p.jerseyNumber,
-      isActive: p.isActive,
-      cost,
-      seasonStats: stats
-        ? {
-            ppg: Number(stats.ppg),
-            rpg: Number(stats.rpg),
-            apg: Number(stats.apg),
-            spg: Number(stats.spg),
-            bpg: Number(stats.bpg),
-            topg: Number(stats.topg),
-            mpg: Number(stats.mpg),
-          }
-        : undefined,
-    }));
+    const weights: ScoreWeights = {
+      pts: room.ptsWeight,
+      reb: room.rebWeight,
+      ast: room.astWeight,
+      stl: room.stlWeight,
+      blk: room.blkWeight,
+      to: room.toWeight,
+    };
+
+    const scoreMap = new Map<number, number>();
+    const gameStatsMap = new Map<
+      number,
+      { pts: number; reb: number; ast: number; stl: number; blk: number; to: number }
+    >();
+    const statsRows = await this.gameStatsRepo
+      .createQueryBuilder('gps')
+      .innerJoin('gps.game', 'g')
+      .where('g.date = :date', { date: gameDay.date })
+      .getMany();
+    for (const gs of statsRows) {
+      const score = computeFantasyScore(
+        { pts: gs.pts, reb: gs.reb, ast: gs.ast, stl: gs.stl, blk: gs.blk, to: gs.toVal },
+        weights,
+      );
+      const existing = scoreMap.get(gs.playerId);
+      scoreMap.set(gs.playerId, (existing ?? 0) + score);
+      const prev = gameStatsMap.get(gs.playerId) ?? { pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, to: 0 };
+      gameStatsMap.set(gs.playerId, {
+        pts: prev.pts + gs.pts,
+        reb: prev.reb + gs.reb,
+        ast: prev.ast + gs.ast,
+        stl: prev.stl + gs.stl,
+        blk: prev.blk + gs.blk,
+        to: prev.to + gs.toVal,
+      });
+    }
+
+    const players = withCost.map(({ p, stats, cost }) => {
+      const gameStats = gameStatsMap.has(p.id) ? gameStatsMap.get(p.id)! : null;
+      return {
+        id: p.id,
+        name: p.name,
+        nameCn: p.nameCn ?? null,
+        position: p.position,
+        team: p.team,
+        jerseyNumber: p.jerseyNumber,
+        isActive: p.isActive,
+        cost,
+        score: scoreMap.has(p.id) ? scoreMap.get(p.id)! : null,
+        gameStats: gameStats
+          ? {
+              pts: gameStats.pts,
+              reb: gameStats.reb,
+              ast: gameStats.ast,
+              stl: gameStats.stl,
+              blk: gameStats.blk,
+              to: gameStats.to,
+            }
+          : null,
+        seasonStats: stats
+          ? {
+              ppg: Number(stats.ppg),
+              rpg: Number(stats.rpg),
+              apg: Number(stats.apg),
+              spg: Number(stats.spg),
+              bpg: Number(stats.bpg),
+              topg: Number(stats.topg),
+              mpg: Number(stats.mpg),
+            }
+          : undefined,
+      };
+    });
     return { players, salaryCap };
   }
 

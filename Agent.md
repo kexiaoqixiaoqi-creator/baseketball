@@ -25,28 +25,47 @@ baseketball/
 | 子模块 | 说明 |
 |---|---|
 | **api** | 统一后端服务。用户接口（`/auth`、`/players`、`/game-days`、`/lineups`、`/rooms`）+ 管理接口（`/admin/*`，JWT + isAdmin 鉴权）+ **数据爬虫**（新浪体育同步，Cron 定时任务） |
-| **web** | 统一前端应用。用户端（`/`、`/login`、`/rooms`、`/lineup/:gameDayId` 等，移动端优先）+ 管理端（`/admin/*`，桌面端后台） |
+| **web** | 统一前端应用。用户端（`/` 首页、`/login`、`/profile` 等，移动端优先）+ 管理端（`/admin/*`，桌面端后台）。`/lineup/:gameDayId` 重定向至 `/` |
 
 ---
 
 ## 游戏玩法
 
+### 赛日状态
+
+| 状态 | 说明 | 阵容操作 |
+|------|------|----------|
+| `prepare` | 准备中，开放选人 | 可提交、可更新阵容 |
+| `playing` | 比赛中 | 只读展示，不可修改 |
+| `finish` | 已结束 | 只读展示，不可修改 |
+
 ### 基本流程
 
-1. **赛前选阵容**：在赛日状态变为 `active` 后，用户从当日有赛事的球员中选出 5 名（PG / SG / SF / PF / C 各一人），总薪资不超过薪资上限（官方房间默认 **$50,000**）。
+1. **赛前选阵容**：在赛日状态为 `prepare` 时，用户从当日有赛事的球员中选出 5 名（PG / SG / SF / PF / C 各一人），总薪资不超过当日薪资上限。
 2. **等待比赛结束**：api 服务内 Cron 定时同步比赛数据，写入 `nba_game_player_stats`。
 3. **赛日结算**：管理员在 `/admin/game-days/:id` 点击「Complete Game Day」，系统对每条阵容计算 `totalScore` 并排名。
 4. **查看排名**：各房间按得分由高到低排列，可跨赛日查看历史成绩。
 
-### 薪资计算（赛前，基于赛季均值）
+### 薪资计算（赛前，基于赛季场均）
 
 ```
-rawScore = ppg×1.0 + rpg×1.2 + apg×1.5 + spg×3.0 + bpg×3.0 − topg×1.0
-cost     = 3000 + (rawScore − globalMin) / (globalMax − globalMin) × 6000
-cost     = round(cost / 100) × 100   ← 取整到百
+rawScore = ppg×w_pts + rpg×w_reb + apg×w_ast + spg×w_stl + bpg×w_blk − topg×w_to
+cost     = round(rawScore × 1000)
 ```
 
-> 所有球员在同一次全局归一化中计算，薪资区间为 $3,000 ~ $9,000。
+球员 cost 由赛季场均数据 × 房间权重计算，无归一化。
+
+### 薪资帽计算
+
+```
+salaryCap = (P90 × 2 + P50 × 3) × room.salaryCapCoefficient
+```
+
+- **P90**：当日可选球员 cost 的 90 分位数（明星级）
+- **P50**：当日可选球员 cost 的 50 分位数（中位数，角色球员）
+- 对应阵容结构：2 明星 + 3 角色球员
+- 房间系数默认 0.33，可按房间调整
+- **存储策略**：`createGameDay` 时根据当日参赛球员与 official room 系数计算并存入 `app_game_days.salary_cap`；`get` 时直接读取并按 `room.salaryCapCoefficient` 比例缩放，无需重算
 
 ### 得分计算（赛后，基于实际表现）
 
@@ -61,8 +80,8 @@ fantasyScore = pts×w_pts + reb×w_reb + ast×w_ast + stl×w_stl + blk×w_blk + 
 ### 阵容规则
 
 - 恰好 5 个位置：PG、SG、SF、PF、C 各一人
-- 5 名球员当日均须有赛事安排
-- 总薪资 ≤ 房间薪资上限
+- 5 名球员当日均须有赛事安排（从比赛列表 → 参赛球队 → 球队球员）
+- 总薪资 ≤ 当日薪资帽
 - 同一用户在同一房间同一赛日只能提交一份阵容
 
 ---
@@ -78,11 +97,11 @@ fantasyScore = pts×w_pts + reb×w_reb + ast×w_ast + stl×w_stl + blk×w_blk + 
 | `app_users` | 用户账号，含用户名、邮箱、密码哈希、是否管理员 |
 | `nba_teams` | NBA 球队，含英文名、中文名、城市 |
 | `nba_players` | 球员信息，含姓名（中英文）、位置、球队、背号、是否在役 |
-| `nba_player_season_stats` | 球员赛季均值统计，含各项数据、fantasy 得分、薪资 |
-| `nba_game_days` | 赛日，含日期、状态（pending/active/completed）、薪资上限 |
-| `nba_games` | 单场比赛，关联赛日，含主客队、状态 |
+| `nba_player_season_stats` | 球员赛季均值统计，含 ppg/rpg/apg/spg/bpg/topg/mpg，cost 实时计算 |
+| `app_game_days` | 赛日（应用层），含日期、状态（prepare/playing/finish）、salary_cap（create 时计算存入），与 NBA 数据通过 date 逻辑关联 |
+| `nba_games` | 单场比赛（NBA 层），含 date、主客队、状态，无 FK 关联 app_game_days |
 | `nba_game_player_stats` | 球员单场实际表现，含 pts/reb/ast/stl/blk/to/min 及 fantasy 得分 |
-| `app_rooms` | 房间，含名称、是否官方、薪资上限、各项得分权重 |
+| `app_rooms` | 房间，含名称、是否官方、salaryCapCoefficient、各项得分权重 |
 | `app_room_members` | 房间成员关联表（复合唯一索引） |
 | `app_lineups` | 用户阵容，关联用户/房间/赛日/5名球员，含总薪资和总得分 |
 | `nba_ext_id_map` | 外部 ID 映射，记录新浪体育的 tid/pid/mid 与内部主键的对应关系 |
@@ -93,9 +112,9 @@ fantasyScore = pts×w_pts + reb×w_reb + ast×w_ast + stl×w_stl + blk×w_blk + 
 
 ```
 nba_teams ──< nba_players ──< nba_player_season_stats
-                         ──< nba_game_player_stats >── nba_games >── nba_game_days
+                         ──< nba_game_player_stats >── nba_games (按 date 关联 app_game_days)
 app_users ──< app_lineups >── app_rooms
-                    └──── nba_game_days
+                    └──── app_game_days
 app_rooms ──< app_room_members >── app_users
 ```
 

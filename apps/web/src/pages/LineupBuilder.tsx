@@ -37,8 +37,10 @@ export function LineupBuilder() {
   const [success, setSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'lineup' | 'pool'>('lineup');
 
-  const { selections, totalCost, salaryCap, selectPlayer, removePlayer, reset, isValid, setSalaryCap } =
+  const { selections, totalCost, salaryCap, selectPlayer, removePlayer, reset, populateFromLineup, isValid, setSalaryCap } =
     useLineupStore();
+
+  const [existingLineupId, setExistingLineupId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!gameDayId) return;
@@ -64,8 +66,23 @@ export function LineupBuilder() {
       .catch(() => setPlayers([]));
   }, [gameDayId, selectedRoom, setSalaryCap]);
 
+  useEffect(() => {
+    if (!gameDayId || !selectedRoom) return;
+    lineupsApi
+      .my(Number(gameDayId), selectedRoom)
+      .then((data: { id: number; players: Record<string, { id: number; name: string; team: string; cost: number }> }) => {
+        setExistingLineupId(data.id);
+        populateFromLineup(data.players);
+      })
+      .catch(() => {
+        setExistingLineupId(null);
+        reset();
+      });
+  }, [gameDayId, selectedRoom, populateFromLineup, reset]);
+
   const handleRoomChange = (roomId: number) => {
     setSelectedRoom(roomId);
+    setExistingLineupId(null);
     reset();
   };
 
@@ -75,16 +92,23 @@ export function LineupBuilder() {
     if (!isValid()) return;
     setSubmitting(true);
     setError('');
+    const payload = {
+      pgId: selections['PG']!.id,
+      sgId: selections['SG']!.id,
+      sfId: selections['SF']!.id,
+      pfId: selections['PF']!.id,
+      cId: selections['C']!.id,
+    };
     try {
-      await lineupsApi.create({
-        gameDayId: Number(gameDayId),
-        roomId: selectedRoom,
-        pgId: selections['PG']!.id,
-        sgId: selections['SG']!.id,
-        sfId: selections['SF']!.id,
-        pfId: selections['PF']!.id,
-        cId: selections['C']!.id,
-      });
+      if (existingLineupId) {
+        await lineupsApi.update(existingLineupId, payload);
+      } else {
+        await lineupsApi.create({
+          gameDayId: Number(gameDayId),
+          roomId: selectedRoom,
+          ...payload,
+        });
+      }
       setSuccess(true);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -217,7 +241,9 @@ export function LineupBuilder() {
             disabled={!isValid() || submitting}
             className={`btn btn-full mt-16 ${isValid() ? 'btn-primary' : 'btn-ghost'}`}
           >
-            {submitting ? 'Submitting…' : 'Submit Lineup'}
+            {submitting
+              ? (existingLineupId ? 'Updating…' : 'Submitting…')
+              : (existingLineupId ? 'Update Lineup' : 'Submit Lineup')}
           </button>
 
           <button

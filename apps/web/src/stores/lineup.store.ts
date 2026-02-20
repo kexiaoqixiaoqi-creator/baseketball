@@ -20,6 +20,7 @@ interface LineupState {
   selectPlayer: (position: string, player: PlayerSlot) => void;
   removePlayer: (position: string) => void;
   reset: () => void;
+  populateFromLineup: (players: Record<string, { id: number; name: string; team: string; cost: number }>) => void;
   isComplete: () => boolean;
   isUnderCap: () => boolean;
   isValid: () => boolean;
@@ -56,6 +57,26 @@ export const useLineupStore = create<LineupState>()((set, get) => ({
     }),
 
   reset: () => set({ selections: emptySelections(), totalCost: 0 }),
+
+  populateFromLineup: (players) =>
+    set((state) => {
+      const selections = { ...state.selections };
+      let totalCost = 0;
+      for (const pos of LINEUP_POSITIONS) {
+        const p = players[pos];
+        if (p) {
+          selections[pos] = {
+            id: p.id,
+            name: p.name,
+            team: p.team,
+            position: pos,
+            cost: p.cost,
+          };
+          totalCost += p.cost;
+        }
+      }
+      return { selections, totalCost };
+    }),
 
   isComplete: () => LINEUP_POSITIONS.every((pos) => get().selections[pos] !== null),
 

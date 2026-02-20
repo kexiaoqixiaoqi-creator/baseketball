@@ -31,6 +31,19 @@ export function GameDays() {
     load();
   };
 
+  const [recalcId, setRecalcId] = useState<number | null>(null);
+  const handleRecalcCap = async (id: number) => {
+    setRecalcId(id);
+    try {
+      await adminClient.post(`/game-days/${id}/recalculate-salary-cap`);
+      load();
+    } catch {
+      alert('Failed to recalculate salary cap');
+    } finally {
+      setRecalcId(null);
+    }
+  };
+
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
@@ -67,6 +80,22 @@ export function GameDays() {
                     Activate
                   </button>
                 )}
+                <button
+                  onClick={() => handleRecalcCap(gd.id)}
+                  disabled={recalcId === gd.id}
+                  style={{
+                    background: '#1e2d3d',
+                    color: '#8899aa',
+                    border: '1px solid #2d3f55',
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    cursor: recalcId === gd.id ? 'default' : 'pointer',
+                    fontSize: 11,
+                    opacity: recalcId === gd.id ? 0.7 : 1,
+                  }}
+                >
+                  {recalcId === gd.id ? 'Recalc…' : 'Recalc Cap'}
+                </button>
                 <Link to={`/admin/game-days/${gd.id}`}
                   style={{ background: '#1e2d3d', color: '#8899aa', padding: '4px 12px', borderRadius: 6, textDecoration: 'none', fontSize: 12 }}>
                   Manage →

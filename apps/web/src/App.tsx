@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { useAuthStore } from './stores/auth.store';
 import { useAdminAuthStore } from './stores/admin-auth.store';
 import { Home } from './pages/Home';
+import { Rankings } from './pages/Rankings';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Profile } from './pages/Profile';
@@ -100,6 +101,10 @@ function BottomNav() {
         <span className="bottom-nav-icon">⌂</span>
         <span>Home</span>
       </NavLink>
+      <NavLink to="/rankings" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
+        <span className="bottom-nav-icon">🏆</span>
+        <span>榜单</span>
+      </NavLink>
       {isAuthenticated() ? (
         <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
           <span className="bottom-nav-icon">👤</span>
@@ -135,6 +140,7 @@ export default function App() {
         {/* User routes */}
         <Route element={<UserLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/rankings" element={<Rankings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/rooms" element={<Navigate to="/" replace />} />

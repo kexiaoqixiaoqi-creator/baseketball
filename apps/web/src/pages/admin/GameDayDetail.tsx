@@ -39,6 +39,7 @@ export function GameDayDetail() {
   const [lineups, setLineups] = useState<LineupRow[]>([]);
   const [playerStats, setPlayerStats] = useState<PlayerStatRow[]>([]);
   const [completing, setCompleting] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [tab, setTab] = useState<'games' | 'lineups' | 'players'>('games');
 
@@ -53,6 +54,21 @@ export function GameDayDetail() {
   const handleStatusChange = async (status: string) => {
     await adminClient.patch(`/game-days/${id}/status`, { status });
     load();
+  };
+
+  const handleRecalculateCap = async () => {
+    setRecalculating(true);
+    setMessage(null);
+    try {
+      const res = await adminClient.post(`/game-days/${id}/recalculate-salary-cap`);
+      setGameDay(res.data);
+      setMessage({ text: `Salary cap updated: $${res.data.salaryCap?.toLocaleString()}`, ok: true });
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setMessage({ text: 'Error: ' + (e.response?.data?.message ?? 'Failed to recalculate'), ok: false });
+    } finally {
+      setRecalculating(false);
+    }
   };
 
   const handleComplete = async () => {
@@ -81,11 +97,27 @@ export function GameDayDetail() {
         <div>
           <Link to="/admin/game-days" style={{ color: '#4a6380', fontSize: 12, textDecoration: 'none' }}>← Game Days</Link>
           <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginTop: 6 }}>Game Day — {gameDay.date}</h1>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ background: STATUS_COLOR[gameDay.status] + '22', color: STATUS_COLOR[gameDay.status], border: `1px solid ${STATUS_COLOR[gameDay.status]}55`, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
               {gameDay.status.toUpperCase()}
             </span>
             <span style={{ color: '#4a6380', fontSize: 12 }}>Cap: ${gameDay.salaryCap?.toLocaleString()}</span>
+            <button
+              onClick={handleRecalculateCap}
+              disabled={recalculating}
+              style={{
+                background: '#1e2d3d',
+                color: '#8899aa',
+                border: '1px solid #2d3f55',
+                padding: '4px 10px',
+                borderRadius: 6,
+                cursor: recalculating ? 'default' : 'pointer',
+                fontSize: 11,
+                opacity: recalculating ? 0.7 : 1,
+              }}
+            >
+              {recalculating ? 'Recalculating…' : 'Recalc Cap'}
+            </button>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

@@ -15,10 +15,12 @@ import {
   Player,
   PlayerSeasonStats,
   GamePlayerStats,
+  Game,
 } from '@fantasy-nba/db';
 import { computeCostFromSeasonStatsRaw, computeFantasyScore, ScoreWeights, CURRENT_SEASON } from '@fantasy-nba/shared';
 import { GameDaysService } from '../game-days/game-days.service';
 import { CreateLineupDto } from './dto/create-lineup.dto';
+import { UpdateLineupDto } from './dto/update-lineup.dto';
 
 @Injectable()
 export class LineupsService {
@@ -33,14 +35,15 @@ export class LineupsService {
     private statsRepo: Repository<PlayerSeasonStats>,
     @InjectRepository(GamePlayerStats)
     private gameStatsRepo: Repository<GamePlayerStats>,
+    @InjectRepository(Game) private gameRepo: Repository<Game>,
   ) {}
 
   async create(userId: number, dto: CreateLineupDto) {
-    // 1. Verify game day is active
+    // 1. Verify game day is prepare (only prepare allows lineup submission)
     const gameDay = await this.gameDayRepo.findOne({ where: { id: dto.gameDayId } });
     if (!gameDay) throw new NotFoundException('Game day not found');
-    if (gameDay.status !== 'playing') {
-      throw new BadRequestException('Game day is not playing');
+    if (gameDay.status !== 'prepare') {
+      throw new BadRequestException('Game day is not open for lineup submission');
     }
 
     // 2. Verify room exists
@@ -146,6 +149,92 @@ export class LineupsService {
     return this.lineupRepo.save(lineup);
   }
 
+  async update(lineupId: number, userId: number, dto: UpdateLineupDto) {
+    const lineup = await this.lineupRepo.findOne({
+      where: { id: lineupId, userId },
+      relations: ['room'],
+    });
+    if (!lineup) throw new NotFoundException('Lineup not found');
+
+    const gameDay = await this.gameDayRepo.findOne({ where: { id: lineup.gameDayId } });
+    if (!gameDay) throw new NotFoundException('Game day not found');
+    if (gameDay.status !== 'prepare') {
+      throw new BadRequestException('Game day is not open for lineup update');
+    }
+
+    const room = lineup.room!;
+    const positionMap: Record<string, number> = {
+      PG: dto.pgId,
+      SG: dto.sgId,
+      SF: dto.sfId,
+      PF: dto.pfId,
+      C: dto.cId,
+    };
+    const playerIds = Object.values(positionMap);
+
+    if (new Set(playerIds).size !== 5) {
+      throw new BadRequestException('All 5 players must be different');
+    }
+
+    const players = await this.playerRepo.findBy({ id: In(playerIds) });
+    if (players.length !== 5) {
+      throw new BadRequestException('One or more player IDs are invalid');
+    }
+
+    for (const [position, playerId] of Object.entries(positionMap)) {
+      const player = players.find((p) => p.id === playerId);
+      if (!player || player.position !== position) {
+        throw new BadRequestException(
+          `Player ${playerId} does not play the ${position} position`,
+        );
+      }
+    }
+
+    const eligibleIds = await this.getEligiblePlayerIds(lineup.gameDayId);
+    for (const pid of playerIds) {
+      if (!eligibleIds.has(pid)) {
+        throw new BadRequestException(
+          `Player ${pid} has no game scheduled on this game day`,
+        );
+      }
+    }
+
+    const statsRows = await this.statsRepo.findBy({
+      playerId: In(playerIds),
+      season: CURRENT_SEASON,
+    });
+    const weights: ScoreWeights = {
+      pts: room.ptsWeight,
+      reb: room.rebWeight,
+      ast: room.astWeight,
+      stl: room.stlWeight,
+      blk: room.blkWeight,
+      to: room.toWeight,
+    };
+    const costMap = new Map<number, number>();
+    for (const s of statsRows) {
+      costMap.set(s.playerId, computeCostFromSeasonStatsRaw(s, weights));
+    }
+    const totalCost = playerIds.reduce((sum, id) => sum + (costMap.get(id) ?? 0), 0);
+
+    const salaryCap = await this.gameDaysService.getSalaryCapForRoom(lineup.gameDayId, lineup.roomId);
+    if (totalCost > salaryCap) {
+      throw new BadRequestException(
+        `Total cost ${totalCost} exceeds the salary cap of ${salaryCap}`,
+      );
+    }
+
+    await this.lineupRepo.update(lineupId, {
+      pgId: dto.pgId,
+      sgId: dto.sgId,
+      sfId: dto.sfId,
+      pfId: dto.pfId,
+      cId: dto.cId,
+      totalCost,
+    });
+    return this.lineupRepo.findOneOrFail({ where: { id: lineupId }, relations: ['room'] });
+  }
+
   async findMyLineup(userId: number, gameDayId: number, roomId: number) {
     const lineup = await this.lineupRepo.findOne({
       where: { userId, gameDayId, roomId },
@@ -240,15 +329,23 @@ export class LineupsService {
     }));
   }
 
+  /** 从 gameDayId 获取比赛列表 → 参赛球队 → 这些球队的球员 */
   private async getEligiblePlayerIds(gameDayId: number): Promise<Set<number>> {
     const gameDay = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
     if (!gameDay) return new Set();
-    const stats = await this.gameStatsRepo
-      .createQueryBuilder('gps')
-      .select('gps.player_id', 'playerId')
-      .innerJoin('gps.game', 'g')
-      .where('g.date = :date', { date: gameDay.date })
-      .getRawMany<{ playerId: number }>();
-    return new Set(stats.map((s) => Number(s.playerId)));
+
+    const games = await this.gameRepo.find({ where: { date: gameDay.date } });
+    const teamNames = new Set<string>();
+    for (const g of games) {
+      teamNames.add(g.homeTeam);
+      teamNames.add(g.awayTeam);
+    }
+    if (teamNames.size === 0) return new Set();
+
+    const players = await this.playerRepo.find({
+      where: { team: In([...teamNames]) },
+      select: ['id'],
+    });
+    return new Set(players.map((p) => p.id));
   }
 }

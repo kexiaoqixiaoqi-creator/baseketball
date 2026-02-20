@@ -11,6 +11,14 @@ export const lineupsApi = {
     cId: number;
   }) => apiClient.post('/lineups', data).then((r) => r.data),
 
+  update: (id: number, data: {
+    pgId: number;
+    sgId: number;
+    sfId: number;
+    pfId: number;
+    cId: number;
+  }) => apiClient.patch(`/lineups/${id}`, data).then((r) => r.data),
+
   my: (gameDayId: number, roomId: number) =>
     apiClient.get('/lineups/my', { params: { gameDayId, roomId } }).then((r) => r.data),
 

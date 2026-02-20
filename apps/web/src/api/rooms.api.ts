@@ -2,6 +2,7 @@ import { apiClient } from './client';
 
 export const roomsApi = {
   list: () => apiClient.get('/rooms').then((r) => r.data),
+  forRankings: () => apiClient.get('/rooms/for-rankings').then((r) => r.data),
   official: () => apiClient.get('/rooms/official').then((r) => r.data),
 
   get: (id: number) => apiClient.get(`/rooms/${id}`).then((r) => r.data),
