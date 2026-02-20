@@ -28,7 +28,7 @@ ORM：TypeORM
 | [app_users](#1-app_users) | 用户账号 |
 | [nba_players](#2-nba_players) | 球员基本信息 |
 | [nba_player_season_stats](#3-nba_player_season_stats) | 球员赛季场均数据 & 签约费 |
-| [nba_game_days](#4-nba_game_days) | 比赛日 |
+| [app_game_days](#4-app_game_days) | 比赛日（应用层，通过日期关联 NBA 数据） |
 | [nba_games](#5-nba_games) | 单场比赛 |
 | [nba_game_player_stats](#6-nba_game_player_stats) | 单场球员实时数据 |
 | [app_rooms](#7-app_rooms) | 房间（官方 & 自定义） |
@@ -108,43 +108,46 @@ cost = round(cost / 100) × 100
 
 ---
 
-## 4. nba_game_days
+## 4. app_game_days
 
-比赛日，代表某一天的所有 NBA 比赛集合。由 api-admin scraper 每天 08:00 自动创建，管理员也可手动维护。
+比赛日（**应用层**），代表某一天的应用侧比赛日配置。与 NBA 数据（`nba_games`）通过 `date` 逻辑关联，无外键。由 api-admin scraper 每天 08:00 自动创建，管理员也可手动维护。
 
 | 列名 | 类型 | 约束 | 说明 |
 |---|---|---|---|
 | `id` | INT | PK, AUTO_INCREMENT | |
 | `date` | DATE | NOT NULL | 比赛日期，如 `2026-02-19` |
-| `status` | ENUM | DEFAULT `pending` | `pending` / `active` / `completed` |
+| `status` | ENUM | DEFAULT `prepare` | `prepare` / `playing` / `finish` |
 | `salary_cap` | INT | DEFAULT 50000 | 该比赛日的薪资上限（官方默认 50,000） |
+| `room_id` | INT | FK → app_rooms.id, NULLABLE | 关联房间（用于多房间模式） |
 
 **状态流转**
 ```
-pending  →  active（管理员手动激活，开放选人）
-active   →  completed（管理员触发 complete 接口，计算得分）
+prepare  →  playing（管理员手动激活，开放选人）
+playing  →  finish（管理员触发 complete 接口，计算得分）
 ```
 
-**关联**：`nba_games.game_day_id → nba_game_days.id`，`app_lineups.game_day_id → nba_game_days.id`
+**关联**：`app_lineups.game_day_id → app_game_days.id`。与 `nba_games` 通过 `date` 逻辑关联，查询当日比赛用 `nba_games.date = app_game_days.date`。
 
 ---
 
 ## 5. nba_games
 
-单场比赛，归属于某个比赛日。由 api-admin scraper 从赛程接口同步创建。
+单场比赛，**NBA 数据独立存在**，按 `date` 存储比赛日期。与 `app_game_days` 无外键，应用层通过日期逻辑关联。由 api-admin scraper 从赛程接口同步创建。
 
 | 列名 | 类型 | 约束 | 说明 |
 |---|---|---|---|
 | `id` | INT | PK, AUTO_INCREMENT | |
-| `game_day_id` | INT | FK → nba_game_days.id, NOT NULL | 所属比赛日 |
+| `date` | DATE | NOT NULL | 比赛日期，如 `2026-02-19` |
 | `home_team` | VARCHAR(50) | NOT NULL | 主场球队英文简称 |
 | `away_team` | VARCHAR(50) | NOT NULL | 客场球队英文简称 |
-| `status` | ENUM | DEFAULT `scheduled` | `scheduled` / `in_progress` / `completed` |
+| `home_team_id` | INT | FK → nba_teams.id, NULLABLE | 主场球队 ID |
+| `away_team_id` | INT | FK → nba_teams.id, NULLABLE | 客场球队 ID |
+| `status` | ENUM | DEFAULT `prepare` | `prepare` / `playing` / `finish` |
 
 **状态流转**（由 scraper 自动更新）
 ```
-scheduled  →  in_progress（首次收到有效数据时）
-in_progress →  completed（所有球员离场且有统计数据时）
+prepare  →  playing（首次收到有效数据时）
+playing →  finish（所有球员离场且有统计数据时）
 ```
 
 **关联**：`nba_game_player_stats.game_id → nba_games.id`，`nba_ext_id_map` 中 `entity_type='game'` 的 `internal_id → nba_games.id`
@@ -222,7 +225,7 @@ in_progress →  completed（所有球员离场且有统计数据时）
 | `id` | INT | PK, AUTO_INCREMENT | |
 | `user_id` | INT | FK → app_users.id, NOT NULL | |
 | `room_id` | INT | FK → app_rooms.id, NOT NULL | |
-| `game_day_id` | INT | FK → nba_game_days.id, NOT NULL | |
+| `game_day_id` | INT | FK → app_game_days.id, NOT NULL | |
 | `pg_id` | INT | FK → nba_players.id, NOT NULL | 控球后卫 |
 | `sg_id` | INT | FK → nba_players.id, NOT NULL | 得分后卫 |
 | `sf_id` | INT | FK → nba_players.id, NOT NULL | 小前锋 |
@@ -235,7 +238,7 @@ in_progress →  completed（所有球员离场且有统计数据时）
 **唯一约束**：`(user_id, room_id, game_day_id)`，每人每房间每天只能提交一份阵容。
 
 **提交校验**（api-user 执行，7 步顺序检查）：
-1. `nba_game_days.status = 'active'`
+1. `app_game_days.status = 'playing'`
 2. 房间存在
 3. 非官方房间需检查用户是否已加入 `app_room_members`
 4. 不存在重复阵容（唯一约束前置校验）
@@ -295,9 +298,9 @@ nba_players
   ├─< nba_player_season_stats   (player_id)
   └─< nba_game_player_stats     (player_id)
 
-nba_game_days
-  ├─< nba_games            (game_day_id)
+app_game_days
   └─< app_lineups          (game_day_id)
+  # 与 nba_games 通过 date 逻辑关联，无 FK
 
 nba_games
   └─< nba_game_player_stats     (game_id)
@@ -320,7 +323,7 @@ nba_ext_id_map             (独立映射表，不通过 FK 引用业务表)
 [api-admin scraper]
     │  每天 07:00  同步球员 → nba_players, nba_ext_id_map(player)
     │  每天 07:30  同步场均 → nba_player_season_stats (含 cost)
-    │  每天 08:00  同步赛程 → nba_game_days, nba_games, nba_ext_id_map(game)
+    │  每天 08:00  同步赛程 → app_game_days, nba_games (date), nba_ext_id_map(game)
     │  每 5 分钟   同步实时 → nba_game_player_stats, nba_games.status
     ▼
 [api-user]
@@ -331,5 +334,5 @@ nba_ext_id_map             (独立映射表，不通过 FK 引用业务表)
 [api-admin]
     │  比赛日结束  读 nba_game_player_stats + app_rooms (weights)
     │             计算 total_score → 写 app_lineups.total_score
-    │             更新 nba_game_days.status = 'completed'
+    │             更新 app_game_days.status = 'finish'
 ```

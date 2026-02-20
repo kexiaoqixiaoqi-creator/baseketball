@@ -4,6 +4,24 @@ import { adminClient } from '../../api/admin-client';
 
 interface Game { id: number; homeTeam: string; awayTeam: string; status: string }
 interface GameDay { id: number; date: string; status: string; salaryCap: number; games: Game[] }
+interface PlayerStatRow {
+  id: number;
+  playerId: number;
+  gameId: number;
+  playerName: string;
+  playerNameCn: string | null;
+  position: string;
+  team: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  to: number;
+  min: number;
+  fantasyScore: number | null;
+  game: { id: number; homeTeam: string; awayTeam: string; status: string };
+}
 interface LineupRow {
   id: number;
   user: { id: number; username: string };
@@ -13,20 +31,22 @@ interface LineupRow {
   createdAt: string;
 }
 
-const STATUS_COLOR: Record<string, string> = { pending: '#f39c12', active: '#27ae60', completed: '#4a6380', scheduled: '#3498db', in_progress: '#27ae60' };
+const STATUS_COLOR: Record<string, string> = { prepare: '#f39c12', playing: '#27ae60', finish: '#4a6380' };
 
 export function GameDayDetail() {
   const { id } = useParams<{ id: string }>();
   const [gameDay, setGameDay] = useState<GameDay | null>(null);
   const [lineups, setLineups] = useState<LineupRow[]>([]);
+  const [playerStats, setPlayerStats] = useState<PlayerStatRow[]>([]);
   const [completing, setCompleting] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [tab, setTab] = useState<'games' | 'lineups'>('games');
+  const [tab, setTab] = useState<'games' | 'lineups' | 'players'>('games');
 
   const load = () => {
     if (!id) return;
     adminClient.get(`/game-days/${id}`).then((r) => setGameDay(r.data));
     adminClient.get(`/game-days/${id}/lineups`).then((r) => setLineups(r.data)).catch(() => {});
+    adminClient.get(`/game-days/${id}/player-stats`).then((r) => setPlayerStats(r.data)).catch(() => setPlayerStats([]));
   };
   useEffect(load, [id]);
 
@@ -69,13 +89,13 @@ export function GameDayDetail() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {gameDay.status === 'pending' && (
-            <button onClick={() => handleStatusChange('active')}
+          {gameDay.status === 'prepare' && (
+            <button onClick={() => handleStatusChange('playing')}
               style={{ background: '#27ae60', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
               Activate
             </button>
           )}
-          {gameDay.status === 'active' && (
+          {gameDay.status === 'playing' && (
             <button onClick={handleComplete} disabled={completing}
               style={{ background: '#e94560', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 700, cursor: completing ? 'default' : 'pointer', fontSize: 14, opacity: completing ? 0.7 : 1 }}>
               {completing ? 'Calculating...' : '✓ Complete & Score'}
@@ -92,10 +112,10 @@ export function GameDayDetail() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '1px solid #1e2d3d' }}>
-        {(['games', 'lineups'] as const).map((t) => (
+        {(['games', 'players', 'lineups'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             style={{ background: 'transparent', border: 'none', borderBottom: tab === t ? '2px solid #e94560' : '2px solid transparent', color: tab === t ? '#e94560' : '#4a6380', padding: '8px 20px', cursor: 'pointer', fontSize: 14, fontWeight: tab === t ? 600 : 400, marginBottom: -1 }}>
-            {t === 'games' ? `Games (${gameDay.games?.length ?? 0})` : `Lineups (${lineups.length})`}
+            {t === 'games' ? `Games (${gameDay.games?.length ?? 0})` : t === 'players' ? `Players (${playerStats.length})` : `Lineups (${lineups.length})`}
           </button>
         ))}
       </div>
@@ -123,6 +143,49 @@ export function GameDayDetail() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {tab === 'players' && (
+        <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
+          {playerStats.length === 0 ? (
+            <div style={{ padding: 24, color: '#4a6380', textAlign: 'center' }}>No player stats for this game day yet. Stats are synced during games.</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#0d1820' }}>
+                    {['Player', 'Pos', 'Team', 'Game', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TO', 'MIN', 'FS'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {playerStats.map((s) => (
+                    <tr key={s.id}>
+                      <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>
+                        {s.playerName}
+                        {s.playerNameCn && <span style={{ color: '#4a6380', fontSize: 12, marginLeft: 4 }}>({s.playerNameCn})</span>}
+                      </td>
+                      <td style={{ ...tdBase, color: '#4a6380', fontSize: 12 }}>{s.position}</td>
+                      <td style={{ ...tdBase, color: '#8899aa' }}>{s.team}</td>
+                      <td style={{ ...tdBase, color: '#4a6380', fontSize: 12 }}>
+                        {s.game?.homeTeam} vs {s.game?.awayTeam}
+                      </td>
+                      <td style={{ ...tdBase, color: '#fff', fontWeight: 600 }}>{s.pts}</td>
+                      <td style={{ ...tdBase, color: '#8899aa' }}>{s.reb}</td>
+                      <td style={{ ...tdBase, color: '#8899aa' }}>{s.ast}</td>
+                      <td style={{ ...tdBase, color: '#8899aa' }}>{s.stl}</td>
+                      <td style={{ ...tdBase, color: '#8899aa' }}>{s.blk}</td>
+                      <td style={{ ...tdBase, color: '#e94560' }}>{s.to}</td>
+                      <td style={{ ...tdBase, color: '#4a6380' }}>{s.min}</td>
+                      <td style={{ ...tdBase, color: s.fantasyScore != null ? '#27ae60' : '#2d3f55', fontWeight: 600 }}>
+                        {s.fantasyScore != null ? s.fantasyScore.toFixed(1) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

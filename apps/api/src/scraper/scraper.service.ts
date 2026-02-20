@@ -37,16 +37,30 @@ export class ScraperService {
     return this.gameStatsSync.syncActiveGames();
   }
 
-  async syncGameDayById(gameDayId: number): Promise<{ synced: number }> {
-    const gameDay = await this.gameDayRepo.findOne({
-      where: { id: gameDayId },
-      relations: ['games'],
+  /** 更新激活比赛日的球员数据：查找 status=playing 的 game day，对其每场比赛同步 game_player_stats */
+  async syncActiveGameDays(): Promise<{ gameDays: number; gamesSynced: number }> {
+    const activeGameDays = await this.gameDayRepo.find({
+      where: { status: 'playing' },
     });
+    if (activeGameDays.length === 0) {
+      return { gameDays: 0, gamesSynced: 0 };
+    }
+    let gamesSynced = 0;
+    for (const gd of activeGameDays) {
+      const { synced } = await this.syncGameDayById(gd.id);
+      gamesSynced += synced;
+    }
+    return { gameDays: activeGameDays.length, gamesSynced };
+  }
+
+  async syncGameDayById(gameDayId: number): Promise<{ synced: number }> {
+    const gameDay = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
     if (!gameDay) throw new NotFoundException(`GameDay ${gameDayId} not found`);
 
+    const games = await this.gameRepo.find({ where: { date: gameDay.date } });
     let synced = 0;
-    for (const game of gameDay.games) {
-      if (game.status === 'completed') continue;
+    for (const game of games) {
+      if (game.status === 'finish') continue;
       try {
         await this.gameStatsSync.syncByInternalId(game.id);
         synced++;
@@ -75,16 +89,14 @@ export class ScraperService {
 
     await this.scheduleSync.syncSchedule(target, 1);
 
-    const gameDay = await this.gameDayRepo.findOne({
-      where: { date: target },
-      relations: ['games'],
-    });
+    const gameDay = await this.gameDayRepo.findOne({ where: { date: target } });
     if (!gameDay) {
       this.logger.warn(`No game_day found for date=${target}`);
       return { gameDay: null, games: [] };
     }
 
-    for (const game of gameDay.games) {
+    const games = await this.gameRepo.find({ where: { date: target } });
+    for (const game of games) {
       try {
         await this.gameStatsSync.syncByInternalId(game.id);
       } catch (err) {
@@ -94,13 +106,10 @@ export class ScraperService {
 
     await this.seasonStatsSync.syncAllSeasonStats();
 
-    const refreshed = await this.gameDayRepo.findOne({
-      where: { id: gameDay.id },
-      relations: ['games'],
-    });
+    const refreshedGames = await this.gameRepo.find({ where: { date: target } });
     return {
-      gameDay: refreshed ?? gameDay,
-      games: refreshed?.games ?? gameDay.games,
+      gameDay,
+      games: refreshedGames,
     };
   }
 }

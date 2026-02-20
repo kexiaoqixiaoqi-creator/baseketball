@@ -11,7 +11,6 @@ export function Navbar() {
 
       <div className="top-nav-links">
         <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Home</NavLink>
-        <NavLink to="/rooms" className={({ isActive }) => isActive ? 'active' : ''}>Rooms</NavLink>
         <Link to="/admin" className="top-nav-admin">Admin</Link>
         {isAuthenticated() && (
           <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>

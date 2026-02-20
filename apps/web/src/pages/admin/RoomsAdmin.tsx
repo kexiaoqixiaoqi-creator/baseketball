@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { adminClient } from '../../api/admin-client';
 
-interface Room { id: number; name: string; isOfficial: boolean; salaryCap: number; members: { id: number }[] }
+interface Room { id: number; name: string; isOfficial: boolean; salaryCapCoefficient: number; members: { id: number }[] }
 interface Ranking { rank: number; user: { id: number; username: string }; totalScore: number | null; totalCost: number }
 interface GameDay { id: number; date: string; status: string }
 
@@ -54,7 +54,7 @@ export function RoomsAdmin() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0d1820' }}>
-                  {['#', 'Name', 'Type', 'Cap', 'Members', ''].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                  {['#', 'Name', 'Type', '系数', 'Members', ''].map((h) => <th key={h} style={thStyle}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -67,7 +67,7 @@ export function RoomsAdmin() {
                         {r.isOfficial ? 'OFFICIAL' : 'CUSTOM'}
                       </span>
                     </td>
-                    <td style={{ ...tdBase, color: '#f39c12' }}>${r.salaryCap?.toLocaleString()}</td>
+                    <td style={{ ...tdBase, color: '#f39c12' }}>{r.salaryCapCoefficient}</td>
                     <td style={{ ...tdBase, color: '#8899aa' }}>{r.members?.length ?? 0}</td>
                     <td style={{ ...tdBase }}>
                       <button onClick={() => handleView(r)}

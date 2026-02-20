@@ -48,9 +48,4 @@ export class AdminPlayersController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.playersService.remove(id);
   }
-
-  @Post('recalculate-costs')
-  recalculateCosts() {
-    return this.playersService.recalculateCosts();
-  }
 }

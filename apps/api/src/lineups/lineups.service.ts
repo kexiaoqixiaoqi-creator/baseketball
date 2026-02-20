@@ -16,7 +16,8 @@ import {
   PlayerSeasonStats,
   GamePlayerStats,
 } from '@fantasy-nba/db';
-import { CURRENT_SEASON } from '@fantasy-nba/shared';
+import { computeCostFromSeasonStatsRaw, computeFantasyScore, ScoreWeights, CURRENT_SEASON } from '@fantasy-nba/shared';
+import { GameDaysService } from '../game-days/game-days.service';
 import { CreateLineupDto } from './dto/create-lineup.dto';
 
 @Injectable()
@@ -25,6 +26,7 @@ export class LineupsService {
     @InjectRepository(Lineup) private lineupRepo: Repository<Lineup>,
     @InjectRepository(GameDay) private gameDayRepo: Repository<GameDay>,
     @InjectRepository(Room) private roomRepo: Repository<Room>,
+    private readonly gameDaysService: GameDaysService,
     @InjectRepository(RoomMember) private roomMemberRepo: Repository<RoomMember>,
     @InjectRepository(Player) private playerRepo: Repository<Player>,
     @InjectRepository(PlayerSeasonStats)
@@ -37,8 +39,8 @@ export class LineupsService {
     // 1. Verify game day is active
     const gameDay = await this.gameDayRepo.findOne({ where: { id: dto.gameDayId } });
     if (!gameDay) throw new NotFoundException('Game day not found');
-    if (gameDay.status !== 'active') {
-      throw new BadRequestException('Game day is not active');
+    if (gameDay.status !== 'playing') {
+      throw new BadRequestException('Game day is not playing');
     }
 
     // 2. Verify room exists
@@ -102,17 +104,29 @@ export class LineupsService {
       }
     }
 
-    // 7. Calculate total cost from cached season stats
+    // 7. Calculate total cost from season stats × room weights (real-time)
     const statsRows = await this.statsRepo.findBy({
       playerId: In(playerIds),
       season: CURRENT_SEASON,
     });
-    const costMap = new Map(statsRows.map((s) => [s.playerId, s.cost]));
+    const weights: ScoreWeights = {
+      pts: room.ptsWeight,
+      reb: room.rebWeight,
+      ast: room.astWeight,
+      stl: room.stlWeight,
+      blk: room.blkWeight,
+      to: room.toWeight,
+    };
+    const costMap = new Map<number, number>();
+    for (const s of statsRows) {
+      costMap.set(s.playerId, computeCostFromSeasonStatsRaw(s, weights));
+    }
     const totalCost = playerIds.reduce((sum, id) => sum + (costMap.get(id) ?? 0), 0);
 
-    if (totalCost > room.salaryCap) {
+    const salaryCap = await this.gameDaysService.getSalaryCapForRoom(dto.gameDayId, dto.roomId);
+    if (totalCost > salaryCap) {
       throw new BadRequestException(
-        `Total cost ${totalCost} exceeds the salary cap of ${room.salaryCap}`,
+        `Total cost ${totalCost} exceeds the salary cap of ${salaryCap}`,
       );
     }
 
@@ -135,8 +149,18 @@ export class LineupsService {
   async findMyLineup(userId: number, gameDayId: number, roomId: number) {
     const lineup = await this.lineupRepo.findOne({
       where: { userId, gameDayId, roomId },
+      relations: ['room'],
     });
     if (!lineup) throw new NotFoundException('Lineup not found');
+    const room = lineup.room!;
+    const weights: ScoreWeights = {
+      pts: room.ptsWeight,
+      reb: room.rebWeight,
+      ast: room.astWeight,
+      stl: room.stlWeight,
+      blk: room.blkWeight,
+      to: room.toWeight,
+    };
 
     const playerIds = [lineup.pgId, lineup.sgId, lineup.sfId, lineup.pfId, lineup.cId];
     const players = await this.playerRepo.findBy({ id: In(playerIds) });
@@ -146,16 +170,29 @@ export class LineupsService {
       playerId: In(playerIds),
       season: CURRENT_SEASON,
     });
-    const costMap = new Map(statsRows.map((s) => [s.playerId, s.cost]));
+    const costMap = new Map<number, number>();
+    for (const s of statsRows) {
+      costMap.set(s.playerId, computeCostFromSeasonStatsRaw(s, weights));
+    }
 
-    // Get actual game scores if available
+    const gd = await this.gameDayRepo.findOne({ where: { id: lineup.gameDayId } });
+    if (!gd) throw new NotFoundException('Game day not found');
     const gameStats = await this.gameStatsRepo
       .createQueryBuilder('gps')
       .innerJoin('gps.game', 'g')
-      .where('g.gameDayId = :gameDayId', { gameDayId: lineup.gameDayId })
+      .where('g.date = :date', { date: gd.date })
       .andWhere('gps.playerId IN (:...playerIds)', { playerIds })
       .getMany();
-    const scoreMap = new Map(gameStats.map((gs) => [gs.playerId, Number(gs.fantasyScore)]));
+    const scoreMap = new Map<number, number>();
+    for (const gs of gameStats) {
+      scoreMap.set(
+        gs.playerId,
+        computeFantasyScore(
+          { pts: gs.pts, reb: gs.reb, ast: gs.ast, stl: gs.stl, blk: gs.blk, to: gs.toVal },
+          weights,
+        ),
+      );
+    }
 
     const makeSlot = (id: number) => {
       const p = playerMap.get(id);
@@ -204,11 +241,13 @@ export class LineupsService {
   }
 
   private async getEligiblePlayerIds(gameDayId: number): Promise<Set<number>> {
+    const gameDay = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
+    if (!gameDay) return new Set();
     const stats = await this.gameStatsRepo
       .createQueryBuilder('gps')
       .select('gps.player_id', 'playerId')
       .innerJoin('gps.game', 'g')
-      .where('g.gameDayId = :gameDayId', { gameDayId })
+      .where('g.date = :date', { date: gameDay.date })
       .getRawMany<{ playerId: number }>();
     return new Set(stats.map((s) => Number(s.playerId)));
   }

@@ -1,13 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { GameDay, Game, Lineup, Room, GamePlayerStats, Player } from '@fantasy-nba/db';
+import { SyncModule } from '../sync/sync.module';
 import { GameDaysService } from './game-days.service';
 import { GameDaysController } from './game-days.controller';
 import { GameDaysUserController } from './game-days-user.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([GameDay, Game, Lineup, Room, GamePlayerStats, Player])],
+  imports: [
+    TypeOrmModule.forFeature([GameDay, Game, Lineup, Room, GamePlayerStats, Player]),
+    SyncModule,
+  ],
   providers: [GameDaysService],
   controllers: [GameDaysController, GameDaysUserController],
+  exports: [GameDaysService],
 })
 export class GameDaysModule {}

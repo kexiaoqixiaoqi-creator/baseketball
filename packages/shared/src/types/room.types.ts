@@ -12,7 +12,7 @@ export interface RoomDto {
   name: string;
   isOfficial: boolean;
   ownerId: number | null;
-  salaryCap: number;
+  salaryCapCoefficient: number;
   weights: RoomWeights;
   memberCount: number;
 }
@@ -27,6 +27,6 @@ export interface RankingEntryDto {
 
 export interface CreateRoomDto {
   name: string;
-  salaryCap?: number;
+  salaryCapCoefficient?: number;
   weights?: Partial<RoomWeights>;
 }

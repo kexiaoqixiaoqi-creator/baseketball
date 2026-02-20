@@ -1,15 +1,10 @@
-import { IsDateString, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional } from 'class-validator';
 
 export class CreateGameDayDto {
   @IsDateString()
   date: string;
 
   @IsOptional()
-  @IsEnum(['pending', 'active', 'completed'])
+  @IsEnum(['prepare', 'playing', 'finish'])
   status?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(10000)
-  salaryCap?: number;
 }

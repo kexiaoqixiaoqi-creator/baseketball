@@ -8,7 +8,7 @@ interface Room {
   id: number;
   name: string;
   isOfficial: boolean;
-  salaryCap: number;
+  salaryCapCoefficient: number;
   memberCount: number;
 }
 
@@ -40,7 +40,7 @@ export function RoomDetail() {
     Promise.all([roomsApi.get(Number(id)), gameDaysApi.list()]).then(([r, gds]) => {
       setRoom(r);
       setGameDays(gds);
-      const completed = gds.find((d: GameDay) => d.status === 'completed');
+      const completed = gds.find((d: GameDay) => d.status === 'finish');
       if (completed) setSelectedDay(completed.id);
     });
   }, [id]);
@@ -71,7 +71,7 @@ export function RoomDetail() {
 
   if (!room) return <div className="loading">Loading…</div>;
 
-  const completedDays = gameDays.filter((gd) => gd.status === 'completed');
+  const completedDays = gameDays.filter((gd) => gd.status === 'finish');
 
   return (
     <div className="page">
@@ -84,7 +84,7 @@ export function RoomDetail() {
               {room.isOfficial && <span className="badge badge-official">Official</span>}
             </h2>
             <p className="text-muted mt-4" style={{ fontSize: 13 }}>
-              Cap: ${room.salaryCap.toLocaleString()} · {room.memberCount ?? 0} members
+              系数: {room.salaryCapCoefficient} · {room.memberCount ?? 0} members
             </p>
           </div>
           {!room.isOfficial && isAuthenticated() && (

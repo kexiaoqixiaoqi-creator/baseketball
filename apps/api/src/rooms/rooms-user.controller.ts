@@ -22,6 +22,11 @@ export class RoomsUserController {
     return this.roomsService.findAllForUser();
   }
 
+  @Get('official')
+  findOfficial() {
+    return this.roomsService.findOfficial();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.roomsService.findOneForUser(id);

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Player, PlayerSeasonStats } from '@fantasy-nba/db';
 import { SinaClientService } from '../sina/sina.client.service';
 import { MappingService } from '../mapping/mapping.service';
-import { computePlayerCosts, CURRENT_SEASON } from '@fantasy-nba/shared';
+import { CURRENT_SEASON } from '@fantasy-nba/shared';
 
 const SOURCE = 'sina';
 
@@ -65,20 +65,10 @@ export class SeasonStatsSyncService {
       return { updated: 0 };
     }
 
-    const costInput = Array.from(playerStatMap.entries()).map(([id, s]) => ({
-      id,
-      stats: { pts: s.ppg, reb: s.rpg, ast: s.apg, stl: s.spg, blk: s.bpg, to: s.topg },
-    }));
-    const costMap = computePlayerCosts(costInput);
-
     const season = CURRENT_SEASON;
     let updated = 0;
 
     for (const [playerId, stats] of playerStatMap.entries()) {
-      const cost = costMap.get(playerId) ?? 3000;
-      const fantasyScore = stats.ppg * 1.0 + stats.rpg * 1.2 + stats.apg * 1.5
-        + stats.spg * 3.0 + stats.bpg * 3.0 - stats.topg * 1.0;
-
       const existing = await this.seasonStatsRepo.findOne({
         where: { playerId, season },
       });
@@ -93,8 +83,6 @@ export class SeasonStatsSyncService {
         bpg: stats.bpg,
         topg: stats.topg,
         mpg: stats.mpg,
-        fantasyScore,
-        cost,
       };
 
       if (existing) {

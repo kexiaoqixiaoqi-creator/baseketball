@@ -14,6 +14,6 @@ export default defineConfig({
     extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
   },
   optimizeDeps: {
-    exclude: ['@fantasy-nba/shared'],
+    include: ['@fantasy-nba/shared'],
   },
 })

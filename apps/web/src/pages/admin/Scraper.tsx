@@ -78,8 +78,8 @@ export function Scraper() {
             style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #2d3f55', background: '#0f1923', color: '#e0e0e0', fontSize: 13 }} />
         </SyncCard>
         <SyncCard
-          label="Sync Active Games"
-          desc="同步当前 active 赛日下 in_progress 比赛"
+          label="Sync Active Game Days"
+          desc="若存在 status=playing 的赛日，则更新其球员数据（定时任务每 5 分钟执行）"
           action={() => adminClient.post('scraper/sync/active')}
         />
         <SyncCard

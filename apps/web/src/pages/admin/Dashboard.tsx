@@ -19,7 +19,7 @@ export function Dashboard() {
     ]).then(([p, t, gd, r, u]) => {
       const gameDays: GameDay[] = gd.data;
       setCounts({ players: p.data.length, teams: t.data.length, gameDays: gameDays.length, rooms: r.data.length, users: u.data.length });
-      setActiveDay(gameDays.find((d) => d.status === 'active') ?? null);
+      setActiveDay(gameDays.find((d) => d.status === 'playing') ?? null);
     }).finally(() => setLoading(false));
   }, []);
 

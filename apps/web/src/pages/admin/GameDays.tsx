@@ -7,7 +7,7 @@ interface GameDay {
   games: { id: number; homeTeam: string; awayTeam: string; status: string }[];
 }
 
-const STATUS_COLOR: Record<string, string> = { pending: '#f39c12', active: '#27ae60', completed: '#4a6380' };
+const STATUS_COLOR: Record<string, string> = { prepare: '#f39c12', playing: '#27ae60', finish: '#4a6380' };
 
 export function GameDays() {
   const [gameDays, setGameDays] = useState<GameDay[]>([]);
@@ -27,7 +27,7 @@ export function GameDays() {
   };
 
   const handleActivate = async (id: number) => {
-    await adminClient.patch(`/game-days/${id}/status`, { status: 'active' });
+    await adminClient.patch(`/game-days/${id}/status`, { status: 'playing' });
     load();
   };
 
@@ -61,7 +61,7 @@ export function GameDays() {
                 <span style={{ background: (STATUS_COLOR[gd.status] ?? '#888') + '22', color: STATUS_COLOR[gd.status] ?? '#888', border: `1px solid ${(STATUS_COLOR[gd.status] ?? '#888')}44`, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
                   {gd.status.toUpperCase()}
                 </span>
-                {gd.status === 'pending' && (
+                {gd.status === 'prepare' && (
                   <button onClick={() => handleActivate(gd.id)}
                     style={{ background: '#27ae6022', color: '#27ae60', border: '1px solid #27ae6044', padding: '4px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
                     Activate

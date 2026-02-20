@@ -89,7 +89,6 @@ npm run build             # 生产构建
 | POST | `/admin/players` | Admin JWT | 创建球员 |
 | PUT | `/admin/players/:id` | Admin JWT | 更新球员信息 |
 | DELETE | `/admin/players/:id` | Admin JWT | 删除球员 |
-| POST | `/admin/players/recalculate-costs` | Admin JWT | 重新计算所有球员薪资（全局归一化） |
 
 **查询参数（GET /admin/players）**：`search`（名字模糊搜索），`position`，`team`
 
@@ -111,7 +110,7 @@ npm run build             # 生产构建
 | 方法 | 路径 | 认证 | 说明 |
 |---|---|---|---|
 | GET | `/game-days` | 无 | 获取所有赛日列表（含比赛信息），按日期倒序 |
-| GET | `/game-days/current` | 无 | 获取当前 active 赛日，无则返回 404 |
+| GET | `/game-days/current` | 无 | 获取当前 playing 赛日，无则返回 404 |
 | GET | `/game-days/:id` | 无 | 获取指定赛日详情 |
 | GET | `/game-days/:id/players` | 无 | 获取指定赛日的可选球员（当日有赛事），含薪资和赛季数据 |
 
@@ -125,6 +124,7 @@ npm run build             # 生产构建
 | PATCH | `/admin/game-days/:id/status` | Admin JWT | 更新赛日状态 |
 | POST | `/admin/game-days/:id/complete` | Admin JWT | **结算赛日**：计算所有阵容得分，写回数据库 |
 | GET | `/admin/game-days/:id/lineups` | Admin JWT | 获取赛日下所有已提交阵容 |
+| GET | `/admin/game-days/:id/player-stats` | Admin JWT | 获取赛日下所有球员当日比赛数据（pts/reb/ast 等） |
 
 **Request Body（POST /admin/game-days）**
 ```json
@@ -133,7 +133,7 @@ npm run build             # 生产构建
 
 **Request Body（PATCH /admin/game-days/:id/status）**
 ```json
-{ "status": "active" }
+{ "status": "playing" }
 ```
 
 ---
@@ -159,7 +159,7 @@ npm run build             # 生产构建
 }
 ```
 
-**提交校验流程**：1. 赛日 active；2. 房间存在；3. 自定义房间须为成员；4. 无重复提交；5. 位置匹配；6. 5 名球员当日均有赛事；7. 总薪资 ≤ 房间上限。
+**提交校验流程**：1. 赛日 playing；2. 房间存在；3. 自定义房间须为成员；4. 无重复提交；5. 位置匹配；6. 5 名球员当日均有赛事；7. 总薪资 ≤ 房间上限。
 
 **查询参数（GET /lineups/my）**：`gameDayId`，`roomId`
 
@@ -172,6 +172,7 @@ npm run build             # 生产构建
 | 方法 | 路径 | 认证 | 说明 |
 |---|---|---|---|
 | GET | `/rooms` | 无 | 获取所有房间列表（含成员数） |
+| GET | `/rooms/official` | 无 | 获取官方房间（启动时自动创建，薪资帽 $50,000） |
 | GET | `/rooms/:id` | 无 | 获取房间详情 |
 | POST | `/rooms` | JWT | 创建自定义房间（创建者自动加入） |
 | POST | `/rooms/:id/join` | JWT | 加入指定房间 |
@@ -209,7 +210,7 @@ npm run build             # 生产构建
 | POST | `/admin/scraper/sync/rosters` | Admin JWT | 同步全部 30 支球队及球员名单 |
 | POST | `/admin/scraper/sync/season-stats` | Admin JWT | 同步球员赛季均值，重算薪资 |
 | POST | `/admin/scraper/sync/schedule` | Admin JWT | 同步赛程（`?date=YYYY-MM-DD&span=1`） |
-| POST | `/admin/scraper/sync/active` | Admin JWT | 同步当前 active 赛日下 in_progress 比赛 |
+| POST | `/admin/scraper/sync/active` | Admin JWT | 同步当前 playing 赛日下 playing 比赛 |
 | POST | `/admin/scraper/sync/game-day/:id` | Admin JWT | 同步指定赛日下所有比赛 |
 | POST | `/admin/scraper/sync/game/:id` | Admin JWT | 同步单场比赛 |
 | POST | `/admin/scraper/sync/mid/:mid` | Admin JWT | 通过 Sina mid 同步单场 |
@@ -219,4 +220,4 @@ npm run build             # 生产构建
 - 07:00 CST — roster sync
 - 07:30 CST — season-stats sync
 - 08:00 CST — schedule sync
-- 08:00–14:00 CST 每 5 分钟 — 同步 in_progress 比赛
+- 08:00–14:00 CST 每 5 分钟 — 同步 playing 比赛

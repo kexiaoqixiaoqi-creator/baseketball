@@ -1,4 +1,4 @@
-import { SCORE_WEIGHTS_DEFAULT, COST_MIN, COST_MAX } from '../constants/game.constants';
+import { LINEUP_SLOTS, SALARY_CAP_OFFICIAL, SCORE_WEIGHTS_DEFAULT } from '../constants/game.constants';
 
 export interface StatLine {
   pts: number;
@@ -9,6 +9,16 @@ export interface StatLine {
   to: number;
 }
 
+/** 赛季场均数据（ppg/rpg 等）格式，用于转换为 StatLine 计算范特西积分 */
+export interface SeasonStatsLike {
+  ppg: number;
+  rpg: number;
+  apg: number;
+  spg: number;
+  bpg: number;
+  topg: number;
+}
+
 export interface ScoreWeights {
   pts: number;
   reb: number;
@@ -16,6 +26,35 @@ export interface ScoreWeights {
   stl: number;
   blk: number;
   to: number;
+}
+
+/**
+ * 将赛季场均数据转换为 StatLine 格式
+ */
+export function seasonStatsToStatLine(
+  stats: SeasonStatsLike | null | undefined,
+): StatLine | null {
+  if (!stats) return null;
+  return {
+    pts: Number(stats.ppg),
+    reb: Number(stats.rpg),
+    ast: Number(stats.apg),
+    stl: Number(stats.spg),
+    blk: Number(stats.bpg),
+    to: Number(stats.topg),
+  };
+}
+
+/**
+ * 根据赛季场均数据和权重计算范特西积分（公共方法）
+ */
+export function computeFantasyScoreFromSeasonStats(
+  stats: SeasonStatsLike | null | undefined,
+  weights: ScoreWeights = SCORE_WEIGHTS_DEFAULT,
+): number {
+  const statLine = seasonStatsToStatLine(stats);
+  if (!statLine) return 0;
+  return computeFantasyScore(statLine, weights);
 }
 
 /**
@@ -37,42 +76,40 @@ export function computeFantasyScore(
 }
 
 /**
- * Normalize a raw fantasy score to the cost range [COST_MIN, COST_MAX].
- * Requires the global min and max across ALL players for that snapshot.
+ * 用 fantasy_score 公式计算球员 cost（赛季场均数据 × 房间权重，保留与薪资帽一致的千位量级）
  */
-export function normalizeToCost(
-  rawScore: number,
-  globalMin: number,
-  globalMax: number,
+export function computeCostFromSeasonStats(
+  stats: StatLine,
+  weights: ScoreWeights = SCORE_WEIGHTS_DEFAULT,
 ): number {
-  if (globalMax === globalMin) {
-    return Math.round(((COST_MIN + COST_MAX) / 2) / 100) * 100;
-  }
-  const ratio = (rawScore - globalMin) / (globalMax - globalMin);
-  const cost = COST_MIN + ratio * (COST_MAX - COST_MIN);
-  return Math.round(cost / 100) * 100;
+  const raw = computeFantasyScore(stats, weights);
+  return Math.round(raw * 1000);
 }
 
 /**
- * Compute costs for an entire player pool in one pass.
- * Returns a map of player_id -> cost.
+ * 根据赛季场均数据和权重直接计算 cost（封装 seasonStatsToStatLine + computeCostFromSeasonStats）
  */
-export function computePlayerCosts(
-  players: Array<{ id: number; stats: StatLine }>,
+export function computeCostFromSeasonStatsRaw(
+  stats: SeasonStatsLike | null | undefined,
   weights: ScoreWeights = SCORE_WEIGHTS_DEFAULT,
-): Map<number, number> {
-  const scores = players.map((p) => ({
-    id: p.id,
-    score: computeFantasyScore(p.stats, weights),
-  }));
+): number {
+  const statLine = seasonStatsToStatLine(stats);
+  if (!statLine) return 0;
+  return computeCostFromSeasonStats(statLine, weights);
+}
 
-  const rawScores = scores.map((s) => s.score);
-  const globalMin = Math.min(...rawScores);
-  const globalMax = Math.max(...rawScores);
-
-  const result = new Map<number, number>();
-  for (const { id, score } of scores) {
-    result.set(id, normalizeToCost(score, globalMin, globalMax));
-  }
-  return result;
+/**
+ * 根据当日可选球员的平均 cost 和房间系数计算 salaryCap
+ * 公式: salaryCap = avgCost × LINEUP_SLOTS × coefficient
+ * 若无有效球员，返回 fallback
+ */
+export function computeSalaryCapFromEligiblePlayers(
+  costs: number[],
+  coefficient: number,
+  fallback?: number,
+): number {
+  const validCosts = costs.filter((c) => c > 0);
+  if (validCosts.length === 0) return fallback ?? SALARY_CAP_OFFICIAL;
+  const avgCost = validCosts.reduce((a, b) => a + b, 0) / validCosts.length;
+  return Math.round(avgCost * LINEUP_SLOTS * coefficient);
 }

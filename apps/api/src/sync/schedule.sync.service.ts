@@ -1,22 +1,34 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GameDay, Game } from '@fantasy-nba/db';
+import { Game } from '@fantasy-nba/db';
 import { SinaClientService } from '../sina/sina.client.service';
 import { MappingService } from '../mapping/mapping.service';
 
 const SOURCE = 'sina';
 
-function mapGameStatus(statusEn: string): 'scheduled' | 'in_progress' | 'completed' {
+async function resolveTeamIds(
+  mapping: { getInternalId: (src: string, type: string, extId: string) => Promise<number | null> },
+  homeTid: string,
+  awayTid: string,
+): Promise<{ homeTeamId: number | null; awayTeamId: number | null }> {
+  const [homeTeamId, awayTeamId] = await Promise.all([
+    mapping.getInternalId(SOURCE, 'team', homeTid),
+    mapping.getInternalId(SOURCE, 'team', awayTid),
+  ]);
+  return { homeTeamId, awayTeamId };
+}
+
+function mapGameStatus(statusEn: string): 'prepare' | 'playing' | 'finish' {
   switch (statusEn?.toLowerCase()) {
     case 'inprogress':
     case 'in_progress':
-      return 'in_progress';
+      return 'playing';
     case 'complete':
     case 'completed':
-      return 'completed';
+      return 'finish';
     default:
-      return 'scheduled';
+      return 'prepare';
   }
 }
 
@@ -27,7 +39,6 @@ export class ScheduleSyncService {
   constructor(
     private readonly sina: SinaClientService,
     private readonly mapping: MappingService,
-    @InjectRepository(GameDay) private readonly gameDayRepo: Repository<GameDay>,
     @InjectRepository(Game) private readonly gameRepo: Repository<Game>,
   ) {}
 
@@ -52,32 +63,27 @@ export class ScheduleSyncService {
     let totalGames = 0;
 
     for (const [matchDate, dayMatches] of byDate.entries()) {
-      let gameDay = await this.gameDayRepo.findOne({ where: { date: matchDate } });
-      if (!gameDay) {
-        gameDay = await this.gameDayRepo.save(
-          this.gameDayRepo.create({
-            date: matchDate,
-            status: 'pending',
-            salaryCap: 50_000,
-          }),
-        );
-        this.logger.debug(`Created game_day for ${matchDate} (id=${gameDay.id})`);
-      }
-
       for (const match of dayMatches) {
         const mid = match.mid;
         const homeTeam = tidToEnglishName.get(match.home_tid) ?? match.home_name;
         const awayTeam = tidToEnglishName.get(match.away_tid) ?? match.away_name;
         const status = mapGameStatus(match.status_en);
+        const { homeTeamId, awayTeamId } = await resolveTeamIds(
+          this.mapping,
+          match.home_tid,
+          match.away_tid,
+        );
 
         let internalGameId = await this.mapping.getInternalId(SOURCE, 'game', mid);
 
         if (internalGameId === null) {
           const game = await this.gameRepo.save(
             this.gameRepo.create({
-              gameDayId: gameDay.id,
+              date: matchDate,
               homeTeam,
               awayTeam,
+              homeTeamId,
+              awayTeamId,
               status,
             }),
           );
@@ -85,7 +91,14 @@ export class ScheduleSyncService {
           await this.mapping.upsert(SOURCE, 'game', mid, internalGameId);
           this.logger.debug(`Created game ${homeTeam} vs ${awayTeam} id=${internalGameId}`);
         } else {
-          await this.gameRepo.update(internalGameId, { homeTeam, awayTeam, status });
+          await this.gameRepo.update(internalGameId, {
+            date: matchDate,
+            homeTeam,
+            awayTeam,
+            homeTeamId,
+            awayTeamId,
+            status,
+          });
         }
 
         totalGames++;

@@ -47,8 +47,9 @@ export class Room {
   @Column({ type: 'float', name: 'to_weight', default: -1.0 })
   toWeight: number;
 
-  @Column({ name: 'salary_cap', type: 'int', default: 50000 })
-  salaryCap: number;
+  /** 薪资帽计算系数：salaryCap = avgCost × LINEUP_SLOTS × coefficient；无球员时用 SALARY_CAP_OFFICIAL 作 fallback */
+  @Column({ name: 'salary_cap_coefficient', type: 'float', default: 0.33 })
+  salaryCapCoefficient: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

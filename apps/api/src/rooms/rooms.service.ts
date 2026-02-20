@@ -1,19 +1,46 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room, Lineup, RoomMember } from '@fantasy-nba/db';
 import { CreateRoomDto } from './dto/create-room.dto';
+import { SALARY_CAP_COEFFICIENT_DEFAULT, SCORE_WEIGHTS_DEFAULT } from '@fantasy-nba/shared';
 
 @Injectable()
-export class RoomsService {
+export class RoomsService implements OnModuleInit {
   constructor(
     @InjectRepository(Room) private roomRepo: Repository<Room>,
     @InjectRepository(Lineup) private lineupRepo: Repository<Lineup>,
     @InjectRepository(RoomMember) private roomMemberRepo: Repository<RoomMember>,
   ) {}
 
+  async onModuleInit() {
+    const existing = await this.roomRepo.findOne({ where: { isOfficial: true } });
+    if (!existing) {
+      await this.roomRepo.save(
+        this.roomRepo.create({
+          name: '官方房间',
+          ownerId: null,
+          isOfficial: true,
+          salaryCapCoefficient: SALARY_CAP_COEFFICIENT_DEFAULT,
+          ptsWeight: SCORE_WEIGHTS_DEFAULT.pts,
+          rebWeight: SCORE_WEIGHTS_DEFAULT.reb,
+          astWeight: SCORE_WEIGHTS_DEFAULT.ast,
+          stlWeight: SCORE_WEIGHTS_DEFAULT.stl,
+          blkWeight: SCORE_WEIGHTS_DEFAULT.blk,
+          toWeight: SCORE_WEIGHTS_DEFAULT.to,
+        }),
+      );
+    }
+  }
+
   findAll() {
     return this.roomRepo.find({ relations: ['members'], order: { createdAt: 'DESC' } });
+  }
+
+  async findOfficial() {
+    const room = await this.roomRepo.findOne({ where: { isOfficial: true }, relations: ['members'] });
+    if (!room) throw new NotFoundException('Official room not found');
+    return this.mapRoomForUser(room);
   }
 
   async findOne(id: number) {
@@ -58,7 +85,7 @@ export class RoomsService {
       name: dto.name,
       ownerId: userId,
       isOfficial: false,
-      salaryCap: dto.salaryCap ?? 50000,
+      salaryCapCoefficient: dto.salaryCapCoefficient ?? SALARY_CAP_COEFFICIENT_DEFAULT,
       ptsWeight: dto.ptsWeight ?? 1.0,
       rebWeight: dto.rebWeight ?? 1.2,
       astWeight: dto.astWeight ?? 1.5,
@@ -92,7 +119,7 @@ export class RoomsService {
       name: r.name,
       isOfficial: r.isOfficial,
       ownerId: r.ownerId,
-      salaryCap: r.salaryCap,
+      salaryCapCoefficient: r.salaryCapCoefficient,
       weights: {
         pts: r.ptsWeight,
         reb: r.rebWeight,

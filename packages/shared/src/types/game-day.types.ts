@@ -1,5 +1,5 @@
-export type GameDayStatus = 'pending' | 'active' | 'completed';
-export type GameStatus = 'scheduled' | 'in_progress' | 'completed';
+export type GameDayStatus = 'prepare' | 'playing' | 'finish';
+export type GameStatus = 'prepare' | 'playing' | 'finish';
 
 export interface GameDto {
   id: number;

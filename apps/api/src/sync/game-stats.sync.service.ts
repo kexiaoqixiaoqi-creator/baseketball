@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Game, GamePlayerStats } from '@fantasy-nba/db';
+import { Game, GamePlayerStats, GameDay } from '@fantasy-nba/db';
 import { SinaClientService } from '../sina/sina.client.service';
 import { MappingService } from '../mapping/mapping.service';
 import { computeFantasyScore, SCORE_WEIGHTS_DEFAULT } from '@fantasy-nba/shared';
@@ -20,22 +20,22 @@ export class GameStatsSyncService {
     @InjectRepository(Game) private readonly gameRepo: Repository<Game>,
     @InjectRepository(GamePlayerStats)
     private readonly statsRepo: Repository<GamePlayerStats>,
+    @InjectRepository(GameDay) private readonly gameDayRepo: Repository<GameDay>,
   ) {}
 
   async syncActiveGames(): Promise<{ synced: number }> {
-    const activeGames = await this.gameRepo.find({
-      where: { status: 'in_progress' },
-      relations: ['gameDay'],
+    const activeGameDays = await this.gameDayRepo.find({
+      where: { status: 'playing' },
     });
+    const activeDates = activeGameDays.map((gd) => gd.date);
+    if (activeDates.length === 0) return { synced: 0 };
 
-    const scheduledGames = await this.gameRepo.find({
-      where: { status: 'scheduled' },
-      relations: ['gameDay'],
+    const candidates = await this.gameRepo.find({
+      where: activeDates.flatMap((d) => [
+        { status: 'playing' as const, date: d },
+        { status: 'prepare' as const, date: d },
+      ]),
     });
-
-    const candidates = [...activeGames, ...scheduledGames].filter(
-      (g) => g.gameDay?.status === 'active',
-    );
 
     let synced = 0;
     for (const game of candidates) {
@@ -124,11 +124,11 @@ export class GameStatsSyncService {
     const anyOnCourt = allPlayers.some((p) => p.on_court);
     const hasStats = allPlayers.some((p) => p.played && (p.points > 0 || p.minutes !== '0:00'));
 
-    if (!anyOnCourt && hasStats && game.status === 'in_progress') {
-      await this.gameRepo.update(game.id, { status: 'completed' });
-      this.logger.log(`Game id=${game.id} marked completed`);
-    } else if (game.status === 'scheduled' && hasStats) {
-      await this.gameRepo.update(game.id, { status: 'in_progress' });
+    if (!anyOnCourt && hasStats && game.status === 'playing') {
+      await this.gameRepo.update(game.id, { status: 'finish' });
+      this.logger.log(`Game id=${game.id} marked finish`);
+    } else if (game.status === 'prepare' && hasStats) {
+      await this.gameRepo.update(game.id, { status: 'playing' });
     }
   }
 }

@@ -19,7 +19,7 @@ interface Player {
 interface Room {
   id: number;
   name: string;
-  salaryCap: number;
+  salaryCapCoefficient: number;
   isOfficial: boolean;
 }
 
@@ -42,27 +42,30 @@ export function LineupBuilder() {
 
   useEffect(() => {
     if (!gameDayId) return;
-    Promise.all([
-      gameDaysApi.get(Number(gameDayId)),
-      gameDaysApi.players(Number(gameDayId)),
-      roomsApi.list(),
-    ]).then(([gd, ps, rs]) => {
+    Promise.all([gameDaysApi.get(Number(gameDayId)), roomsApi.list()]).then(([gd, rs]) => {
       setGameDay(gd);
-      setPlayers(ps);
       setRooms(rs);
       if (rs.length > 0) {
         const officialRoom = rs.find((r: Room) => r.isOfficial) ?? rs[0];
         setSelectedRoom(officialRoom.id);
-        setSalaryCap(officialRoom.salaryCap);
       }
     });
     return () => reset();
   }, [gameDayId]);
 
+  useEffect(() => {
+    if (!gameDayId || !selectedRoom) return;
+    gameDaysApi
+      .players(Number(gameDayId), selectedRoom)
+      .then((res: { players: Player[]; salaryCap: number }) => {
+        setPlayers(res.players);
+        setSalaryCap(res.salaryCap);
+      })
+      .catch(() => setPlayers([]));
+  }, [gameDayId, selectedRoom, setSalaryCap]);
+
   const handleRoomChange = (roomId: number) => {
     setSelectedRoom(roomId);
-    const room = rooms.find((r) => r.id === roomId);
-    if (room) setSalaryCap(room.salaryCap);
     reset();
   };
 
@@ -127,7 +130,7 @@ export function LineupBuilder() {
         >
           {rooms.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.name} — Cap ${r.salaryCap.toLocaleString()}
+              {r.name} — 系数 {r.salaryCapCoefficient}
             </option>
           ))}
         </select>

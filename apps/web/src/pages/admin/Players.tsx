@@ -18,7 +18,6 @@ function Badge({ text, color }: { text: string; color: string }) {
 export function Players() {
   const [all, setAll] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const [recalculating, setRecalculating] = useState(false);
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -35,17 +34,6 @@ export function Players() {
 
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); load(); };
 
-  const handleRecalculate = async () => {
-    if (!confirm('Recalculate costs for all players?')) return;
-    setRecalculating(true);
-    try {
-      const res = await adminClient.post('/players/recalculate-costs');
-      alert(res.data.message);
-      load();
-    } catch { alert('Failed to recalculate costs'); }
-    finally { setRecalculating(false); }
-  };
-
   const handleDeactivate = async (id: number, name: string) => {
     if (!confirm(`Deactivate ${name}?`)) return;
     await adminClient.delete(`/players/${id}`);
@@ -60,15 +48,9 @@ export function Players() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Players</h1>
-          <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>{all.length} results</p>
-        </div>
-        <button onClick={handleRecalculate} disabled={recalculating}
-          style={{ background: '#f39c12', color: '#fff', border: 'none', padding: '9px 18px', borderRadius: 7, fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: recalculating ? 0.7 : 1 }}>
-          {recalculating ? 'Recalculating...' : '↺ Recalculate Costs'}
-        </button>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Players</h1>
+        <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>{all.length} results</p>
       </div>
 
       {/* Filters */}

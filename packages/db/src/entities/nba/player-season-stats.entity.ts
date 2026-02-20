@@ -36,10 +36,4 @@ export class PlayerSeasonStats {
 
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
   mpg: number;
-
-  @Column({ type: 'decimal', precision: 8, scale: 2, default: 0, name: 'fantasy_score' })
-  fantasyScore: number;
-
-  @Column({ type: 'int', default: 0 })
-  cost: number;
 }

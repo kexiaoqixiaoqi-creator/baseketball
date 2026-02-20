@@ -8,8 +8,8 @@ export class CreateRoomDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(10000)
-  salaryCap?: number;
+  @Min(0.1)
+  salaryCapCoefficient?: number;
 
   @IsOptional()
   @IsNumber()

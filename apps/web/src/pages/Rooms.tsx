@@ -7,14 +7,14 @@ interface Room {
   id: number;
   name: string;
   isOfficial: boolean;
-  salaryCap: number;
+  salaryCapCoefficient: number;
   memberCount: number;
 }
 
 export function Rooms() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreate, setShowCreate] = useState(false);
-  const [newRoom, setNewRoom] = useState({ name: '', salaryCap: 50000 });
+  const [newRoom, setNewRoom] = useState({ name: '', salaryCapCoefficient: 0.33 });
   const [creating, setCreating] = useState(false);
   const { isAuthenticated } = useAuthStore();
 
@@ -29,7 +29,7 @@ export function Rooms() {
       await roomsApi.create(newRoom);
       await load();
       setShowCreate(false);
-      setNewRoom({ name: '', salaryCap: 50000 });
+      setNewRoom({ name: '', salaryCapCoefficient: 0.33 });
     } catch {
       alert('Failed to create room');
     } finally {
@@ -70,13 +70,16 @@ export function Rooms() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Salary Cap</label>
+              <label className="form-label">薪资帽系数 (salaryCapCoefficient)</label>
               <input
                 type="number"
                 className="input"
-                value={newRoom.salaryCap}
-                onChange={(e) => setNewRoom({ ...newRoom, salaryCap: Number(e.target.value) })}
+                step="0.01"
+                min="0.1"
+                value={newRoom.salaryCapCoefficient}
+                onChange={(e) => setNewRoom({ ...newRoom, salaryCapCoefficient: Number(e.target.value) })}
               />
+              <small className="text-muted" style={{ fontSize: 12 }}>salaryCap = avgCost × 5 × 系数</small>
             </div>
             <button type="submit" disabled={creating} className="btn btn-success">
               {creating ? 'Creating…' : 'Create Room'}
@@ -103,7 +106,7 @@ export function Rooms() {
                   {room.isOfficial && <span className="badge badge-official">Official</span>}
                 </div>
                 <div className="text-muted mt-4" style={{ fontSize: 13 }}>
-                  Cap: ${room.salaryCap.toLocaleString()} · {room.memberCount ?? 0} members
+                  系数: {room.salaryCapCoefficient} · {room.memberCount ?? 0} members
                 </div>
               </div>
               <span style={{ color: 'var(--primary)', fontSize: 22, marginLeft: 8 }}>›</span>

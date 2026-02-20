@@ -38,8 +38,8 @@ export class ScraperController {
   }
 
   @Post('sync/active')
-  syncActiveGames() {
-    return this.scraperService.syncActiveGames();
+  syncActiveGameDays() {
+    return this.scraperService.syncActiveGameDays();
   }
 
   @Post('sync/game-day/:id')

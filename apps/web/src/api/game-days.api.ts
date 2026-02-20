@@ -7,6 +7,8 @@ export const gameDaysApi = {
 
   list: () => apiClient.get('/game-days').then((r) => r.data),
 
-  players: (gameDayId: number) =>
-    apiClient.get(`/game-days/${gameDayId}/players`).then((r) => r.data),
+  players: (gameDayId: number, roomId?: number) =>
+    apiClient
+      .get(`/game-days/${gameDayId}/players`, { params: roomId ? { roomId } : undefined })
+      .then((r) => r.data),
 };

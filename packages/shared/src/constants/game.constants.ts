@@ -1,4 +1,6 @@
 export const SALARY_CAP_OFFICIAL = 50_000;
+export const SALARY_CAP_COEFFICIENT_DEFAULT = 0.33; // avgCost × LINEUP_SLOTS × coefficient ≈ salaryCap
+export const LINEUP_SLOTS = 5;
 export const COST_MIN = 3_000;
 export const COST_MAX = 9_000;
 export const CURRENT_SEASON = '2024-25';

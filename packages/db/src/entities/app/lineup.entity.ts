@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { Room } from './room.entity';
-import { GameDay } from '../nba/game-day.entity';
+import { GameDay } from './game-day.entity';
 
 @Entity('app_lineups')
 @Index(['userId', 'roomId', 'gameDayId'], { unique: true })

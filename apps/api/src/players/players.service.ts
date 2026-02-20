@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Player, PlayerSeasonStats } from '@fantasy-nba/db';
-import { computePlayerCosts, CURRENT_SEASON } from '@fantasy-nba/shared';
+import { computeCostFromSeasonStatsRaw, computeFantasyScoreFromSeasonStats, SCORE_WEIGHTS_DEFAULT, CURRENT_SEASON } from '@fantasy-nba/shared';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
 
@@ -22,7 +22,12 @@ export class PlayersService {
   async findAll(filter: PlayerFilter = {}) {
     const qb = this.playerRepo
       .createQueryBuilder('p')
-      .leftJoinAndSelect('p.seasonStats', 'ss')
+      .leftJoinAndSelect(
+        'p.seasonStats',
+        'ss',
+        'ss.season = :season',
+        { season: CURRENT_SEASON },
+      )
       .orderBy('p.name', 'ASC');
 
     if (filter.search) {
@@ -35,7 +40,8 @@ export class PlayersService {
       qb.andWhere('p.team LIKE :team', { team: `%${filter.team}%` });
     }
 
-    return qb.getMany();
+    const players = await qb.getMany();
+    return players.map((p) => this.mapPlayerForUser(p));
   }
 
   async findOne(id: number) {
@@ -59,33 +65,6 @@ export class PlayersService {
     return { message: 'Player deactivated' };
   }
 
-  async recalculateCosts() {
-    const allStats = await this.statsRepo.find({
-      where: { season: CURRENT_SEASON },
-      relations: ['player'],
-    });
-
-    const input = allStats.map((s) => ({
-      id: s.playerId,
-      stats: {
-        pts: Number(s.ppg),
-        reb: Number(s.rpg),
-        ast: Number(s.apg),
-        stl: Number(s.spg),
-        blk: Number(s.bpg),
-        to: Number(s.topg),
-      },
-    }));
-
-    const costMap = computePlayerCosts(input);
-
-    for (const [playerId, cost] of costMap.entries()) {
-      await this.statsRepo.update({ playerId, season: CURRENT_SEASON }, { cost });
-    }
-
-    return { message: `Recalculated costs for ${costMap.size} players` };
-  }
-
   async findAllForUser(position?: string, team?: string) {
     const qb = this.playerRepo
       .createQueryBuilder('p')
@@ -99,10 +78,11 @@ export class PlayersService {
 
     if (position) qb.andWhere('p.position = :position', { position });
     if (team) qb.andWhere('p.team = :team', { team });
-    qb.orderBy('ss.cost', 'DESC');
 
     const players = await qb.getMany();
-    return players.map((p) => this.mapPlayerForUser(p));
+    const mapped = players.map((p) => this.mapPlayerForUser(p));
+    mapped.sort((a, b) => b.cost - a.cost);
+    return mapped;
   }
 
   async findOneForUser(id: number) {
@@ -121,6 +101,8 @@ export class PlayersService {
 
   private mapPlayerForUser(p: Player) {
     const stats = p.seasonStats?.[0];
+    const cost = computeCostFromSeasonStatsRaw(stats, SCORE_WEIGHTS_DEFAULT);
+    const fantasyScore = computeFantasyScoreFromSeasonStats(stats, SCORE_WEIGHTS_DEFAULT);
     return {
       id: p.id,
       name: p.name,
@@ -129,20 +111,8 @@ export class PlayersService {
       team: p.team,
       jerseyNumber: p.jerseyNumber,
       isActive: p.isActive,
-      cost: stats ? stats.cost : 0,
-      seasonStats: stats
-        ? {
-            ppg: Number(stats.ppg),
-            rpg: Number(stats.rpg),
-            apg: Number(stats.apg),
-            spg: Number(stats.spg),
-            bpg: Number(stats.bpg),
-            topg: Number(stats.topg),
-            mpg: Number(stats.mpg),
-            fantasyScore: Number(stats.fantasyScore),
-            cost: stats.cost,
-          }
-        : undefined,
+      cost,
+      seasonStats: stats ? [{ ppg: Number(stats.ppg), rpg: Number(stats.rpg), apg: Number(stats.apg), spg: Number(stats.spg), bpg: Number(stats.bpg), topg: Number(stats.topg), mpg: Number(stats.mpg), fantasyScore, cost }] : [],
     };
   }
 }

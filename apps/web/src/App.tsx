@@ -6,9 +6,6 @@ import { useAdminAuthStore } from './stores/admin-auth.store';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
-import { LineupBuilder } from './pages/LineupBuilder';
-import { Rooms } from './pages/Rooms';
-import { RoomDetail } from './pages/RoomDetail';
 import { Profile } from './pages/Profile';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { Dashboard } from './pages/admin/Dashboard';
@@ -103,10 +100,6 @@ function BottomNav() {
         <span className="bottom-nav-icon">⌂</span>
         <span>Home</span>
       </NavLink>
-      <NavLink to="/rooms" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
-        <span className="bottom-nav-icon">🏆</span>
-        <span>Rooms</span>
-      </NavLink>
       {isAuthenticated() ? (
         <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
           <span className="bottom-nav-icon">👤</span>
@@ -144,10 +137,10 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/rooms" element={<Rooms />} />
-          <Route path="/rooms/:id" element={<RoomDetail />} />
+          <Route path="/rooms" element={<Navigate to="/" replace />} />
+          <Route path="/rooms/:id" element={<Navigate to="/" replace />} />
+          <Route path="/lineup/:gameDayId" element={<Navigate to="/" replace />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/lineup/:gameDayId" element={<LineupBuilder />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
