@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Room, Lineup, RoomMember, Player, GameDay, Game, GamePlayerStats } from '@fantasy-nba/db';
 import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
 import { SALARY_CAP_COEFFICIENT_DEFAULT, SCORE_WEIGHTS_DEFAULT } from '@fantasy-nba/shared';
 
 @Injectable()
@@ -166,6 +167,17 @@ export class RoomsService implements OnModuleInit {
       this.roomMemberRepo.create({ roomId: saved.id, userId }),
     );
     return this.mapRoomForUser(saved);
+  }
+
+  /** 管理员更新房间（如系数） */
+  async adminUpdate(roomId: number, dto: UpdateRoomDto) {
+    const room = await this.roomRepo.findOne({ where: { id: roomId } });
+    if (!room) throw new NotFoundException('Room not found');
+    if (dto.salaryCapCoefficient != null) {
+      room.salaryCapCoefficient = dto.salaryCapCoefficient;
+      await this.roomRepo.save(room);
+    }
+    return this.roomRepo.findOne({ where: { id: roomId }, relations: ['members'] });
   }
 
   async joinRoom(roomId: number, userId: number) {

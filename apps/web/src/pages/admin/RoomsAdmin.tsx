@@ -13,12 +13,18 @@ export function RoomsAdmin() {
   const [gameDayId, setGameDayId] = useState('');
   const [rankings, setRankings] = useState<Ranking[] | null>(null);
   const [rankLoading, setRankLoading] = useState(false);
+  const [editCoeff, setEditCoeff] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     Promise.all([adminClient.get('/rooms'), adminClient.get('/game-days')])
       .then(([r, gd]) => { setRooms(r.data); setGameDays(gd.data); })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (selected) setEditCoeff(String(selected.salaryCapCoefficient));
+  }, [selected]);
 
   const loadRankings = async (roomId: number, gdId: string) => {
     if (!gdId) return;
@@ -33,8 +39,27 @@ export function RoomsAdmin() {
 
   const handleView = (r: Room) => {
     setSelected(r);
+    setEditCoeff(String(r.salaryCapCoefficient));
     setRankings(null);
     setGameDayId('');
+  };
+
+  const handleSaveCoeff = async () => {
+    if (!selected) return;
+    const v = parseFloat(editCoeff);
+    if (isNaN(v) || v < 0.1) return;
+    setSaving(true);
+    try {
+      const res = await adminClient.patch(`/rooms/${selected.id}`, {
+        salaryCapCoefficient: v,
+      });
+      setRooms((prev) =>
+        prev.map((r) => (r.id === selected.id ? { ...r, salaryCapCoefficient: res.data.salaryCapCoefficient } : r)),
+      );
+      setSelected({ ...selected, salaryCapCoefficient: res.data.salaryCapCoefficient });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', color: '#4a6380', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 };
@@ -92,6 +117,28 @@ export function RoomsAdmin() {
               <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>选择赛日查看排名</p>
             </div>
             <button onClick={() => setSelected(null)} style={{ background: 'transparent', color: '#4a6380', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+            <span style={{ color: '#8899aa', fontSize: 12 }}>薪资帽系数</span>
+            <input
+              type="number"
+              min={0.1}
+              step={0.01}
+              value={editCoeff}
+              onChange={(e) => setEditCoeff(e.target.value)}
+              style={{ width: 72, padding: '5px 8px', borderRadius: 4, border: '1px solid #2d3f55', background: '#0f1923', color: '#e0e0e0', fontSize: 13 }}
+            />
+            <button
+              onClick={handleSaveCoeff}
+              disabled={
+                saving ||
+                !(parseFloat(editCoeff) >= 0.1 && parseFloat(editCoeff) !== selected.salaryCapCoefficient)
+              }
+              style={{ background: '#27ae60', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: 4, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1, fontSize: 12, fontWeight: 600 }}
+            >
+              {saving ? '保存中…' : '保存'}
+            </button>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
