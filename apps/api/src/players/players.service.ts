@@ -2,6 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Player, PlayerSeasonStats } from '@fantasy-nba/db';
+import { MappingService } from '../mapping/mapping.service';
+
+const SINA_AVATAR_BASE = 'https://www.sinaimg.cn/ty/nba/player/NBA_1_1';
 import { computeCostFromSeasonStatsRaw, computeFantasyScoreFromSeasonStats, SCORE_WEIGHTS_DEFAULT, CURRENT_SEASON } from '@fantasy-nba/shared';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player.dto';
@@ -17,11 +20,13 @@ export class PlayersService {
   constructor(
     @InjectRepository(Player) private playerRepo: Repository<Player>,
     @InjectRepository(PlayerSeasonStats) private statsRepo: Repository<PlayerSeasonStats>,
+    private readonly mapping: MappingService,
   ) {}
 
   async findAll(filter: PlayerFilter = {}) {
     const qb = this.playerRepo
       .createQueryBuilder('p')
+      .leftJoinAndSelect('p.teamEntity', 'team')
       .leftJoinAndSelect(
         'p.seasonStats',
         'ss',
@@ -41,7 +46,8 @@ export class PlayersService {
     }
 
     const players = await qb.getMany();
-    return players.map((p) => this.mapPlayerForUser(p));
+    const extIdMap = await this.mapping.getExtIdsByInternalIds('sina', 'player', players.map((p) => p.id));
+    return players.map((p) => this.mapPlayerForAdmin(p, extIdMap.get(p.id)));
   }
 
   async findOne(id: number) {
@@ -113,6 +119,26 @@ export class PlayersService {
       isActive: p.isActive,
       cost,
       seasonStats: stats ? [{ ppg: Number(stats.ppg), rpg: Number(stats.rpg), apg: Number(stats.apg), spg: Number(stats.spg), bpg: Number(stats.bpg), topg: Number(stats.topg), mpg: Number(stats.mpg), fantasyScore, cost }] : [],
+    };
+  }
+
+  private mapPlayerForAdmin(p: Player, sinaId?: string) {
+    const stats = p.seasonStats?.[0];
+    const cost = computeCostFromSeasonStatsRaw(stats, SCORE_WEIGHTS_DEFAULT);
+    const fantasyScore = computeFantasyScoreFromSeasonStats(stats, SCORE_WEIGHTS_DEFAULT);
+    const avatarUrl = sinaId ? `${SINA_AVATAR_BASE}/${sinaId}.png` : null;
+    const teamCn = p.teamEntity?.nameCn ?? p.team;
+    return {
+      id: p.id,
+      name: p.name,
+      nameCn: p.nameCn ?? null,
+      position: p.position,
+      team: teamCn,
+      teamEn: p.team,
+      jerseyNumber: p.jerseyNumber,
+      isActive: p.isActive,
+      avatarUrl,
+      seasonStats: stats ? [{ cost, ppg: Number(stats.ppg), rpg: Number(stats.rpg), apg: Number(stats.apg), fantasyScore }] : [],
     };
   }
 }

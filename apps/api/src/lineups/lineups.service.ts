@@ -17,6 +17,9 @@ import {
   GamePlayerStats,
   Game,
 } from '@fantasy-nba/db';
+import { MappingService } from '../mapping/mapping.service';
+
+const SINA_AVATAR_BASE = 'https://www.sinaimg.cn/ty/nba/player/NBA_1_1';
 import { computeCostFromSeasonStatsRaw, computeFantasyScore, ScoreWeights, CURRENT_SEASON } from '@fantasy-nba/shared';
 import { GameDaysService } from '../game-days/game-days.service';
 import { CreateLineupDto } from './dto/create-lineup.dto';
@@ -36,6 +39,7 @@ export class LineupsService {
     @InjectRepository(GamePlayerStats)
     private gameStatsRepo: Repository<GamePlayerStats>,
     @InjectRepository(Game) private gameRepo: Repository<Game>,
+    private readonly mapping: MappingService,
   ) {}
 
   async create(userId: number, dto: CreateLineupDto) {
@@ -252,8 +256,12 @@ export class LineupsService {
     };
 
     const playerIds = [lineup.pgId, lineup.sgId, lineup.sfId, lineup.pfId, lineup.cId];
-    const players = await this.playerRepo.findBy({ id: In(playerIds) });
+    const players = await this.playerRepo.find({
+      where: { id: In(playerIds) },
+      relations: ['teamEntity'],
+    });
     const playerMap = new Map(players.map((p) => [p.id, p]));
+    const extIdMap = await this.mapping.getExtIdsByInternalIds('sina', 'player', playerIds);
 
     const statsRows = await this.statsRepo.findBy({
       playerId: In(playerIds),
@@ -285,10 +293,14 @@ export class LineupsService {
 
     const makeSlot = (id: number) => {
       const p = playerMap.get(id);
+      const sinaId = extIdMap.get(id);
+      const avatarUrl = sinaId ? `${SINA_AVATAR_BASE}/${sinaId}.png` : null;
+      const teamCn = p?.teamEntity?.nameCn ?? p?.team ?? '';
       return {
         id,
-        name: p?.name ?? 'Unknown',
-        team: p?.team ?? '',
+        name: p?.nameCn ?? p?.name ?? '未知',
+        team: teamCn,
+        avatarUrl,
         cost: costMap.get(id) ?? 0,
         actualScore: scoreMap.get(id) ?? null,
       };

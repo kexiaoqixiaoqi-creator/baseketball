@@ -35,13 +35,13 @@ function AdminLayout() {
   if (!isAuthenticated()) return <Navigate to="/admin/login" replace />;
 
   const navLinks = [
-    { to: '/admin', label: '📊 Dashboard', end: true },
-    { to: '/admin/players', label: '🏀 Players' },
-    { to: '/admin/teams', label: '🏆 Teams' },
-    { to: '/admin/game-days', label: '📅 Game Days' },
-    { to: '/admin/rooms', label: '🏠 Rooms' },
-    { to: '/admin/users', label: '👥 Users' },
-    { to: '/admin/scraper', label: '🔄 Data Sync', end: true },
+    { to: '/admin', label: '📊 控制台', end: true },
+    { to: '/admin/players', label: '🏀 球员' },
+    { to: '/admin/teams', label: '🏆 球队' },
+    { to: '/admin/game-days', label: '📅 赛日' },
+    { to: '/admin/rooms', label: '🏠 房间' },
+    { to: '/admin/users', label: '👥 用户' },
+    { to: '/admin/scraper', label: '🔄 数据同步', end: true },
   ];
 
   return (
@@ -49,7 +49,7 @@ function AdminLayout() {
       <div style={S.sidebar}>
         <div style={S.logo}>
           <div style={{ color: '#e94560', fontWeight: 700, fontSize: 17, letterSpacing: 0.5 }}>Fantasy NBA</div>
-          <div style={{ color: '#4a6380', fontSize: 11, marginTop: 3, textTransform: 'uppercase', letterSpacing: 1 }}>Admin Panel</div>
+          <div style={{ color: '#4a6380', fontSize: 11, marginTop: 3, textTransform: 'uppercase', letterSpacing: 1 }}>管理后台</div>
         </div>
         <nav style={S.nav}>
           {navLinks.map((link) => (
@@ -72,7 +72,7 @@ function AdminLayout() {
             background: '#1e2d3d', color: '#8899aa', border: '1px solid #2d3f55',
             padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12, width: '100%',
           }}>
-            Logout
+            退出
           </button>
         </div>
       </div>
@@ -99,7 +99,7 @@ function BottomNav() {
     <nav className="bottom-nav">
       <NavLink to="/" end className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
         <span className="bottom-nav-icon">⌂</span>
-        <span>Home</span>
+        <span>首页</span>
       </NavLink>
       <NavLink to="/rankings" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
         <span className="bottom-nav-icon">🏆</span>
@@ -108,12 +108,12 @@ function BottomNav() {
       {isAuthenticated() ? (
         <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
           <span className="bottom-nav-icon">👤</span>
-          <span>Profile</span>
+          <span>个人</span>
         </NavLink>
       ) : (
         <NavLink to="/login" className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
           <span className="bottom-nav-icon">🔑</span>
-          <span>Login</span>
+          <span>登录</span>
         </NavLink>
       )}
     </nav>

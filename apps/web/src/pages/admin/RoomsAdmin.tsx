@@ -45,16 +45,16 @@ export function RoomsAdmin() {
       {/* Rooms list */}
       <div>
         <div style={{ marginBottom: 16 }}>
-          <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Rooms</h1>
-          <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>{rooms.length} rooms total</p>
+          <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>房间管理</h1>
+          <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>共 {rooms.length} 个房间</p>
         </div>
 
-        {loading ? <div style={{ color: '#4a6380' }}>Loading...</div> : (
+        {loading ? <div style={{ color: '#4a6380' }}>加载中…</div> : (
           <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0d1820' }}>
-                  {['#', 'Name', 'Type', '系数', 'Members', ''].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                  {['#', '名称', '类型', '系数', '成员', ''].map((h) => <th key={h} style={thStyle}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -64,7 +64,7 @@ export function RoomsAdmin() {
                     <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>{r.name}</td>
                     <td style={{ ...tdBase }}>
                       <span style={{ background: r.isOfficial ? '#e9456022' : '#1e2d3d', color: r.isOfficial ? '#e94560' : '#8899aa', border: `1px solid ${r.isOfficial ? '#e9456044' : '#2d3f55'}`, padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
-                        {r.isOfficial ? 'OFFICIAL' : 'CUSTOM'}
+                        {r.isOfficial ? '官方' : '自定义'}
                       </span>
                     </td>
                     <td style={{ ...tdBase, color: '#f39c12' }}>{r.salaryCapCoefficient}</td>
@@ -72,7 +72,7 @@ export function RoomsAdmin() {
                     <td style={{ ...tdBase }}>
                       <button onClick={() => handleView(r)}
                         style={{ background: '#1e2d3d', color: '#3498db', border: '1px solid #3498db44', padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                        Rankings
+                        排名
                       </button>
                     </td>
                   </tr>
@@ -88,8 +88,8 @@ export function RoomsAdmin() {
         <div>
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <h2 style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>Rankings — {selected.name}</h2>
-              <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>Select a game day to view</p>
+              <h2 style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}>排名 — {selected.name}</h2>
+              <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>选择赛日查看排名</p>
             </div>
             <button onClick={() => setSelected(null)} style={{ background: 'transparent', color: '#4a6380', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
           </div>
@@ -97,28 +97,28 @@ export function RoomsAdmin() {
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             <select value={gameDayId} onChange={(e) => setGameDayId(e.target.value)}
               style={{ flex: 1, padding: '7px 10px', borderRadius: 6, border: '1px solid #2d3f55', background: '#0f1923', color: '#e0e0e0', fontSize: 13 }}>
-              <option value="">Select game day…</option>
+              <option value="">选择赛日…</option>
               {gameDays.map((gd) => (
                 <option key={gd.id} value={gd.id}>{gd.date} ({gd.status})</option>
               ))}
             </select>
             <button onClick={() => loadRankings(selected.id, gameDayId)} disabled={!gameDayId || rankLoading}
               style={{ background: '#3498db', color: '#fff', border: 'none', padding: '7px 16px', borderRadius: 6, cursor: gameDayId ? 'pointer' : 'default', opacity: gameDayId ? 1 : 0.5, fontSize: 13, fontWeight: 600 }}>
-              Load
+              加载
             </button>
           </div>
 
-          {rankLoading && <div style={{ color: '#4a6380', padding: 12 }}>Loading rankings...</div>}
+          {rankLoading && <div style={{ color: '#4a6380', padding: 12 }}>加载排名中…</div>}
 
           {rankings !== null && !rankLoading && (
             rankings.length === 0 ? (
-              <div style={{ color: '#4a6380', background: '#131f2e', borderRadius: 10, padding: 20, textAlign: 'center' }}>No lineups for this game day.</div>
+              <div style={{ color: '#4a6380', background: '#131f2e', borderRadius: 10, padding: 20, textAlign: 'center' }}>本赛日暂无阵容。</div>
             ) : (
               <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: '#0d1820' }}>
-                      {['Rank', 'User', 'Cost', 'Score'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                      {['排名', '用户', '薪资', '得分'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>

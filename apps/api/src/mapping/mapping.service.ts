@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { ExtIdMap, ExtEntityType } from '@fantasy-nba/db';
 
 @Injectable()
@@ -30,6 +30,19 @@ export class MappingService {
       where: { source, entityType, internalId },
     });
     return row?.extId ?? null;
+  }
+
+  /** 批量获取 internal_id → ext_id 映射 */
+  async getExtIdsByInternalIds(
+    source: string,
+    entityType: ExtEntityType,
+    internalIds: number[],
+  ): Promise<Map<number, string>> {
+    if (internalIds.length === 0) return new Map();
+    const rows = await this.repo.find({
+      where: { source, entityType, internalId: In(internalIds) },
+    });
+    return new Map(rows.map((r) => [r.internalId, r.extId]));
   }
 
   async upsert(

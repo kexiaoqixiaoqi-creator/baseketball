@@ -10,10 +10,10 @@ export function Navbar() {
       <Link to="/" className="top-nav-brand">🏀 Fantasy NBA</Link>
 
       <div className="top-nav-links">
-        <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Home</NavLink>
-        <Link to="/admin" className="top-nav-admin">Admin</Link>
+        <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>首页</NavLink>
+        <Link to="/admin" className="top-nav-admin">管理</Link>
         {isAuthenticated() && (
-          <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>
+          <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>个人</NavLink>
         )}
       </div>
 
@@ -27,13 +27,13 @@ export function Navbar() {
               onClick={() => { logout(); navigate('/login'); }}
               className="btn btn-outline btn-sm"
             >
-              Logout
+              退出
             </button>
           </>
         ) : (
           <>
-            <Link to="/login" className="btn btn-ghost btn-sm">Login</Link>
-            <Link to="/register" className="btn btn-primary btn-sm">Register</Link>
+            <Link to="/login" className="btn btn-ghost btn-sm">登录</Link>
+            <Link to="/register" className="btn btn-primary btn-sm">注册</Link>
           </>
         )}
       </div>

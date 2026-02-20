@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { GameDay, Game, Lineup, Room, GamePlayerStats, Player } from '@fantasy-nba/db';
+import { GameDay, Game, Lineup, Room, GamePlayerStats, Player, Team } from '@fantasy-nba/db';
 import { SyncModule } from '../sync/sync.module';
+import { MappingModule } from '../mapping/mapping.module';
 import { GameDaysService } from './game-days.service';
 import { GameDaysController } from './game-days.controller';
 import { GameDaysUserController } from './game-days-user.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([GameDay, Game, Lineup, Room, GamePlayerStats, Player]),
+    TypeOrmModule.forFeature([GameDay, Game, Lineup, Room, GamePlayerStats, Player, Team]),
     SyncModule,
+    MappingModule,
   ],
   providers: [GameDaysService],
   controllers: [GameDaysController, GameDaysUserController],

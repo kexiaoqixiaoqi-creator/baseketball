@@ -5,7 +5,7 @@ interface SeasonStats { cost: number; ppg: number; rpg: number; apg: number; fan
 interface Player {
   id: number; name: string; nameCn: string | null; position: string;
   team: string; jerseyNumber: string; isActive: boolean;
-  seasonStats: SeasonStats[];
+  avatarUrl?: string | null; seasonStats: SeasonStats[];
 }
 
 const POS_COLORS: Record<string, string> = { PG: '#3498db', SG: '#9b59b6', SF: '#27ae60', PF: '#f39c12', C: '#e94560' };
@@ -35,7 +35,7 @@ export function Players() {
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); load(); };
 
   const handleDeactivate = async (id: number, name: string) => {
-    if (!confirm(`Deactivate ${name}?`)) return;
+    if (!confirm(`确认停用 ${name}？`)) return;
     await adminClient.delete(`/players/${id}`);
     load();
   };
@@ -49,40 +49,40 @@ export function Players() {
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Players</h1>
-        <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>{all.length} results</p>
+        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>球员管理</h1>
+        <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>共 {all.length} 条结果</p>
       </div>
 
       {/* Filters */}
       <form onSubmit={handleSearch} style={{ background: '#131f2e', borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <input
-          type="text" placeholder="Search name (EN/CN)…" value={search}
+          type="text" placeholder="搜索球员名（中/英）…" value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ flex: '1 1 200px', padding: '7px 12px', borderRadius: 6, border: '1px solid #2d3f55', background: '#0f1923', color: '#e0e0e0', fontSize: 13, minWidth: 160 }}
         />
         <select value={posFilter} onChange={(e) => { setPosFilter(e.target.value); load(search, e.target.value); }}
           style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid #2d3f55', background: '#0f1923', color: '#e0e0e0', fontSize: 13 }}>
-          <option value="">All Positions</option>
+          <option value="">全部位置</option>
           {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
         <button type="submit" style={{ background: '#3498db', color: '#fff', border: 'none', padding: '7px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-          Search
+          搜索
         </button>
         {(search || posFilter) && (
           <button type="button" onClick={() => { setSearch(''); setPosFilter(''); load('', ''); }}
             style={{ background: '#2d3f55', color: '#8899aa', border: 'none', padding: '7px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
-            Clear
+            清除
           </button>
         )}
       </form>
 
-      {loading ? <div style={{ color: '#4a6380', padding: 20 }}>Loading...</div> : (
+      {loading ? <div style={{ color: '#4a6380', padding: 20 }}>加载中…</div> : (
         <>
           <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0d1820' }}>
-                  {['#', 'English Name', 'Chinese Name', 'Pos', 'Team', 'Jersey', 'Cost', 'Fantasy', 'Active', ''].map((h) => (
+                  {['#', '', '姓名', '英文名', '位置', '球队', '背号', '薪资', '范特西分', '状态', ''].map((h) => (
                     <th key={h} style={thStyle}>{h}</th>
                   ))}
                 </tr>
@@ -93,8 +93,15 @@ export function Players() {
                   return (
                     <tr key={p.id} style={{ background: 'transparent' }}>
                       <td style={{ ...tdBase, color: '#2d3f55' }}>{p.id}</td>
-                      <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>{p.name}</td>
-                      <td style={{ ...tdBase, color: '#8899aa' }}>{p.nameCn ?? '—'}</td>
+                      <td style={{ ...tdBase }}>
+                        {p.avatarUrl ? (
+                          <img src={p.avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1a2332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a6380', fontSize: 10 }}>—</div>
+                        )}
+                      </td>
+                      <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>{p.nameCn ?? p.name}</td>
+                      <td style={{ ...tdBase, color: '#8899aa' }}>{p.name}</td>
                       <td style={{ ...tdBase }}>
                         <Badge text={p.position} color={POS_COLORS[p.position] ?? '#888'} />
                       </td>
@@ -107,13 +114,13 @@ export function Players() {
                         {stats ? Number(stats.fantasyScore).toFixed(1) : '—'}
                       </td>
                       <td style={{ ...tdBase }}>
-                        <Badge text={p.isActive ? 'Active' : 'Off'} color={p.isActive ? '#27ae60' : '#e94560'} />
+                        <Badge text={p.isActive ? '在役' : '停用'} color={p.isActive ? '#27ae60' : '#e94560'} />
                       </td>
                       <td style={{ ...tdBase }}>
                         {p.isActive && (
-                          <button onClick={() => handleDeactivate(p.id, p.name)}
+                          <button onClick={() => handleDeactivate(p.id, p.nameCn ?? p.name)}
                             style={{ background: 'transparent', color: '#e94560', border: '1px solid #e9456044', padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                            Deactivate
+                            停用
                           </button>
                         )}
                       </td>
@@ -129,12 +136,12 @@ export function Players() {
             <div style={{ display: 'flex', gap: 8, marginTop: 14, alignItems: 'center', justifyContent: 'center' }}>
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
                 style={{ background: '#131f2e', color: '#8899aa', border: '1px solid #2d3f55', padding: '5px 14px', borderRadius: 6, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
-                ‹ Prev
+                ‹ 上一页
               </button>
-              <span style={{ color: '#4a6380', fontSize: 13 }}>Page {page} / {totalPages}</span>
+              <span style={{ color: '#4a6380', fontSize: 13 }}>第 {page} / {totalPages} 页</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                 style={{ background: '#131f2e', color: '#8899aa', border: '1px solid #2d3f55', padding: '5px 14px', borderRadius: 6, cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}>
-                Next ›
+                下一页 ›
               </button>
             </div>
           )}

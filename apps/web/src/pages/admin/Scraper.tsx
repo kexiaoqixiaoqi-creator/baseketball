@@ -22,7 +22,7 @@ function SyncCard({ label, desc, action, children }: SyncCardProps) {
       setResult(typeof res === 'object' ? JSON.stringify(res, null, 2) : String(res));
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(ax.response?.data?.message ?? ax.message ?? 'Request failed');
+      setError(ax.response?.data?.message ?? ax.message ?? '请求失败');
     } finally {
       setLoading(false);
     }
@@ -40,7 +40,7 @@ function SyncCard({ label, desc, action, children }: SyncCardProps) {
         </div>
         <button onClick={run} disabled={loading}
           style={{ background: loading ? '#2d3f55' : '#3498db', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: 6, fontWeight: 600, cursor: loading ? 'default' : 'pointer', fontSize: 13, flexShrink: 0 }}>
-          {loading ? 'Running...' : 'Run'}
+          {loading ? '执行中…' : '执行'}
         </button>
       </div>
     </div>
@@ -54,23 +54,23 @@ export function Scraper() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>Data Sync (Scraper)</h1>
+        <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>数据同步</h1>
         <p style={{ color: '#4a6380', fontSize: 13, marginTop: 4 }}>手动触发新浪体育数据同步</p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 600 }}>
         <SyncCard
-          label="Sync Rosters"
+          label="同步名单"
           desc="同步 30 支球队及球员名单"
           action={() => adminClient.post('scraper/sync/rosters')}
         />
         <SyncCard
-          label="Sync Season Stats"
+          label="同步赛季数据"
           desc="同步球员赛季均值，重算薪资"
           action={() => adminClient.post('scraper/sync/season-stats')}
         />
         <SyncCard
-          label="Sync Schedule"
+          label="同步赛程"
           desc="同步指定日期起 1 天赛程"
           action={() => adminClient.post(`scraper/sync/schedule?date=${scheduleDate}&span=1`)}
         >
@@ -78,13 +78,13 @@ export function Scraper() {
             style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #2d3f55', background: '#0f1923', color: '#e0e0e0', fontSize: 13 }} />
         </SyncCard>
         <SyncCard
-          label="Sync Active Game Days"
+          label="同步进行中赛日"
           desc="若存在 status=playing 的赛日，则更新其球员数据（定时任务每 5 分钟执行）"
           action={() => adminClient.post('scraper/sync/active')}
         />
         <SyncCard
-          label="Aggregate Game Day"
-          desc="聚合：同步某日赛程 + 比赛数据 + 赛季数据，返回 game_day 和 games"
+          label="聚合赛日数据"
+          desc="聚合：同步某日赛程、比赛数据、赛季数据，返回 game_day 和 games"
           action={() => adminClient.post(`scraper/aggregate/game-day?date=${aggregateDate}`)}
         >
           <input type="date" value={aggregateDate} onChange={(e) => setAggregateDate(e.target.value)}

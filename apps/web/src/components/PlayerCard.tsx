@@ -1,9 +1,11 @@
 interface Player {
   id: number;
   name: string;
+  nameCn?: string | null;
   position: string;
   team: string;
   cost: number;
+  avatarUrl?: string | null;
   seasonStats?: {
     ppg: number;
     rpg: number;
@@ -32,11 +34,18 @@ export function PlayerCard({ player, onSelect, onRemove, selected, disabled }: P
       marginBottom: 8,
       opacity: disabled ? 0.5 : 1,
     }}>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#1a1a2e' }}>
+        {player.avatarUrl ? (
+          <img src={player.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4a6380', fontSize: 16 }}>{player.position}</div>
+        )}
+      </div>
       <div style={{ background: '#e94560', color: '#fff', borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 700, minWidth: 28, textAlign: 'center' }}>
         {player.position}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ color: '#fff', fontWeight: 600 }}>{player.name}</div>
+        <div style={{ color: '#fff', fontWeight: 600 }}>{player.nameCn ?? player.name}</div>
         <div style={{ color: '#aaa', fontSize: 13 }}>{player.team}</div>
         {player.seasonStats && (
           <div style={{ color: '#888', fontSize: 12 }}>

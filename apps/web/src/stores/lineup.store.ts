@@ -8,6 +8,7 @@ export interface PlayerSlot {
   team: string;
   position: string;
   cost: number;
+  avatarUrl?: string | null;
 }
 
 type Selections = Record<string, PlayerSlot | null>;
@@ -20,7 +21,7 @@ interface LineupState {
   selectPlayer: (position: string, player: PlayerSlot) => void;
   removePlayer: (position: string) => void;
   reset: () => void;
-  populateFromLineup: (players: Record<string, { id: number; name: string; team: string; cost: number }>) => void;
+  populateFromLineup: (players: Record<string, { id: number; name: string; team: string; cost: number; avatarUrl?: string | null }>) => void;
   isComplete: () => boolean;
   isUnderCap: () => boolean;
   isValid: () => boolean;
@@ -38,7 +39,16 @@ export const useLineupStore = create<LineupState>()((set, get) => ({
 
   selectPlayer: (position, player) =>
     set((state) => {
-      const selections = { ...state.selections, [position]: player };
+      const slot: PlayerSlot = {
+        id: player.id,
+        name: player.nameCn ?? player.name,
+        nameCn: player.nameCn ?? null,
+        team: player.team,
+        position: player.position ?? position,
+        cost: player.cost,
+        avatarUrl: player.avatarUrl ?? null,
+      };
+      const selections = { ...state.selections, [position]: slot };
       const totalCost = Object.values(selections).reduce(
         (sum, p) => sum + (p?.cost ?? 0),
         0,
@@ -71,6 +81,7 @@ export const useLineupStore = create<LineupState>()((set, get) => ({
             team: p.team,
             position: pos,
             cost: p.cost,
+            avatarUrl: p.avatarUrl ?? null,
           };
           totalCost += p.cost;
         }

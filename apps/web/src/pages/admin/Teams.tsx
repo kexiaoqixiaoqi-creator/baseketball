@@ -17,16 +17,16 @@ export function Teams() {
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Teams</h1>
-        <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>{teams.length} NBA teams</p>
+        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>球队管理</h1>
+        <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>共 {teams.length} 支 NBA 球队</p>
       </div>
 
-      {loading ? <div style={{ color: '#4a6380' }}>Loading...</div> : (
+      {loading ? <div style={{ color: '#4a6380' }}>加载中…</div> : (
         <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0d1820' }}>
-                {['#', 'English Name', 'Chinese Name', 'City (EN)', 'City (CN)'].map((h) => (
+                {['#', '英文名', '中文名', '城市(英)', '城市(中)'].map((h) => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>

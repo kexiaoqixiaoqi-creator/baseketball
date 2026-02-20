@@ -20,7 +20,7 @@ export function Register() {
       navigate('/');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message ?? 'Registration failed');
+      setError(e.response?.data?.message ?? '注册失败');
     } finally {
       setLoading(false);
     }
@@ -30,15 +30,15 @@ export function Register() {
     <div className="page-narrow">
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <div style={{ fontSize: 48, marginBottom: 10 }}>🏀</div>
-        <h1 style={{ fontSize: 24, fontWeight: 800 }}>Create Account</h1>
-        <p className="text-muted mt-4" style={{ fontSize: 14 }}>Join the Fantasy NBA league</p>
+        <h1 style={{ fontSize: 24, fontWeight: 800 }}>创建账号</h1>
+        <p className="text-muted mt-4" style={{ fontSize: 14 }}>加入 Fantasy NBA 联赛</p>
       </div>
 
       <div className="card">
         {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>{error}</div>}
         <form onSubmit={handleSubmit} className="form-stack">
           <div className="form-group">
-            <label className="form-label">Username</label>
+            <label className="form-label">用户名</label>
             <input
               type="text"
               placeholder="johndoe"
@@ -50,7 +50,7 @@ export function Register() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">邮箱</label>
             <input
               type="email"
               placeholder="you@example.com"
@@ -62,10 +62,10 @@ export function Register() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label">密码</label>
             <input
               type="password"
-              placeholder="min 6 characters"
+              placeholder="至少 6 个字符"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="input"
@@ -74,12 +74,12 @@ export function Register() {
             />
           </div>
           <button type="submit" disabled={loading} className="btn btn-primary btn-full" style={{ marginTop: 4 }}>
-            {loading ? 'Creating account…' : 'Create Account'}
+            {loading ? '创建中…' : '创建账号'}
           </button>
         </form>
         <p className="text-muted mt-16" style={{ textAlign: 'center', fontSize: 14 }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 600 }}>Sign in</Link>
+          已有账号？{' '}
+          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 600 }}>立即登录</Link>
         </p>
       </div>
     </div>

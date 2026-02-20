@@ -15,14 +15,14 @@ export function Users() {
   useEffect(load, []);
 
   const handleToggleAdmin = async (u: User) => {
-    const action = u.isAdmin ? 'Remove admin from' : 'Grant admin to';
-    if (!confirm(`${action} ${u.username}?`)) return;
+    const action = u.isAdmin ? '取消' : '授予';
+    if (!confirm(`确认${action} ${u.username} 管理员权限？`)) return;
     await adminClient.patch(`/users/${u.id}/toggle-admin`);
     load();
   };
 
   const handleDelete = async (u: User) => {
-    if (!confirm(`Delete user "${u.username}"? This cannot be undone.`)) return;
+    if (!confirm(`确认删除用户 "${u.username}"？此操作不可恢复。`)) return;
     await adminClient.delete(`/users/${u.id}`);
     load();
   };
@@ -33,16 +33,16 @@ export function Users() {
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Users</h1>
-        <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>{users.length} registered accounts</p>
+        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>用户管理</h1>
+        <p style={{ color: '#4a6380', fontSize: 12, marginTop: 2 }}>共 {users.length} 个注册账号</p>
       </div>
 
-      {loading ? <div style={{ color: '#4a6380' }}>Loading...</div> : (
+      {loading ? <div style={{ color: '#4a6380' }}>加载中…</div> : (
         <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0d1820' }}>
-                {['#', 'Username', 'Email', 'Role', 'Joined', 'Actions'].map((h) => (
+                {['#', '用户名', '邮箱', '角色', '注册时间', '操作'].map((h) => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
@@ -53,7 +53,7 @@ export function Users() {
                   <td style={{ ...tdBase, color: '#2d3f55' }}>{u.id}</td>
                   <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>
                     {u.username}
-                    {u.id === me?.id && <span style={{ color: '#4a6380', fontSize: 11, marginLeft: 6 }}>(you)</span>}
+                    {u.id === me?.id && <span style={{ color: '#4a6380', fontSize: 11, marginLeft: 6 }}>(当前)</span>}
                   </td>
                   <td style={{ ...tdBase, color: '#8899aa' }}>{u.email}</td>
                   <td style={{ ...tdBase }}>
@@ -63,7 +63,7 @@ export function Users() {
                       border: `1px solid ${u.isAdmin ? '#e9456055' : '#2d3f55'}`,
                       padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
                     }}>
-                      {u.isAdmin ? 'Admin' : 'User'}
+                      {u.isAdmin ? '管理员' : '用户'}
                     </span>
                   </td>
                   <td style={{ ...tdBase, color: '#4a6380' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
@@ -73,11 +73,11 @@ export function Users() {
                         <>
                           <button onClick={() => handleToggleAdmin(u)}
                             style={{ background: 'transparent', color: u.isAdmin ? '#f39c12' : '#27ae60', border: `1px solid ${u.isAdmin ? '#f39c1244' : '#27ae6044'}`, padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                            {u.isAdmin ? '↓ Remove Admin' : '↑ Grant Admin'}
+                            {u.isAdmin ? '↓ 取消管理员' : '↑ 设为管理员'}
                           </button>
                           <button onClick={() => handleDelete(u)}
                             style={{ background: 'transparent', color: '#e94560', border: '1px solid #e9456044', padding: '3px 10px', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                            Delete
+                            删除
                           </button>
                         </>
                       )}

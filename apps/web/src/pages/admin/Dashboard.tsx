@@ -24,21 +24,21 @@ export function Dashboard() {
   }, []);
 
   const cards = [
-    { label: 'Players', value: counts.players, link: '/admin/players', color: '#e94560', icon: '🏀' },
-    { label: 'Teams', value: counts.teams, link: '/admin/teams', color: '#9b59b6', icon: '🏆' },
-    { label: 'Game Days', value: counts.gameDays, link: '/admin/game-days', color: '#27ae60', icon: '📅' },
-    { label: 'Rooms', value: counts.rooms, link: '/admin/rooms', color: '#f39c12', icon: '🏠' },
-    { label: 'Users', value: counts.users, link: '/admin/users', color: '#3498db', icon: '👥' },
+    { label: '球员', value: counts.players, link: '/admin/players', color: '#e94560', icon: '🏀' },
+    { label: '球队', value: counts.teams, link: '/admin/teams', color: '#9b59b6', icon: '🏆' },
+    { label: '赛日', value: counts.gameDays, link: '/admin/game-days', color: '#27ae60', icon: '📅' },
+    { label: '房间', value: counts.rooms, link: '/admin/rooms', color: '#f39c12', icon: '🏠' },
+    { label: '用户', value: counts.users, link: '/admin/users', color: '#3498db', icon: '👥' },
   ];
 
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>Dashboard</h1>
-        <p style={{ color: '#4a6380', fontSize: 13, marginTop: 4 }}>Fantasy NBA Admin Overview</p>
+        <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>控制台</h1>
+        <p style={{ color: '#4a6380', fontSize: 13, marginTop: 4 }}>Fantasy NBA 管理概览</p>
       </div>
 
-      {loading ? <div style={{ color: '#4a6380' }}>Loading...</div> : (
+      {loading ? <div style={{ color: '#4a6380' }}>加载中…</div> : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
             {cards.map((c) => (
@@ -56,18 +56,18 @@ export function Dashboard() {
             <div style={{ background: '#131f2e', borderRadius: 10, padding: 20, borderLeft: '3px solid #27ae60' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ color: '#27ae60', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Active Game Day</div>
+                  <div style={{ color: '#27ae60', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>进行中赛日</div>
                   <div style={{ color: '#fff', fontSize: 18, fontWeight: 600 }}>{activeDay.date}</div>
-                  <div style={{ color: '#4a6380', fontSize: 13, marginTop: 3 }}>{(activeDay.games as unknown[]).length} games scheduled</div>
+                  <div style={{ color: '#4a6380', fontSize: 13, marginTop: 3 }}>{(activeDay.games as unknown[]).length} 场比赛</div>
                 </div>
                 <Link to={`/admin/game-days/${activeDay.id}`} style={{ background: '#27ae60', color: '#fff', padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14 }}>
-                  Manage →
+                  管理 →
                 </Link>
               </div>
             </div>
           ) : (
             <div style={{ background: '#131f2e', borderRadius: 10, padding: 20, borderLeft: '3px solid #2d3f55' }}>
-              <div style={{ color: '#4a6380', fontSize: 14 }}>No active game day. Go to Game Days to activate one.</div>
+              <div style={{ color: '#4a6380', fontSize: 14 }}>暂无进行中赛日，请前往赛日管理激活。</div>
             </div>
           )}
         </>

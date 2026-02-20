@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Room, Lineup, RoomMember } from '@fantasy-nba/db';
+import { Repository, In } from 'typeorm';
+import { Room, Lineup, RoomMember, Player, GameDay, Game, GamePlayerStats } from '@fantasy-nba/db';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { SALARY_CAP_COEFFICIENT_DEFAULT, SCORE_WEIGHTS_DEFAULT } from '@fantasy-nba/shared';
 
@@ -11,6 +11,9 @@ export class RoomsService implements OnModuleInit {
     @InjectRepository(Room) private roomRepo: Repository<Room>,
     @InjectRepository(Lineup) private lineupRepo: Repository<Lineup>,
     @InjectRepository(RoomMember) private roomMemberRepo: Repository<RoomMember>,
+    @InjectRepository(Player) private playerRepo: Repository<Player>,
+    @InjectRepository(GameDay) private gameDayRepo: Repository<GameDay>,
+    @InjectRepository(GamePlayerStats) private gameStatsRepo: Repository<GamePlayerStats>,
   ) {}
 
   async onModuleInit() {
@@ -53,18 +56,61 @@ export class RoomsService implements OnModuleInit {
     const room = await this.roomRepo.findOne({ where: { id: roomId } });
     if (!room) throw new NotFoundException('Room not found');
 
+    const gameDay = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
+    if (!gameDay) throw new NotFoundException('Game day not found');
+
     const lineups = await this.lineupRepo.find({
       where: { roomId, gameDayId },
       relations: ['user'],
       order: { totalScore: 'DESC' },
     });
 
+    const allPlayerIds = new Set<number>();
+    for (const l of lineups) {
+      allPlayerIds.add(l.pgId).add(l.sgId).add(l.sfId).add(l.pfId).add(l.cId);
+    }
+    const playerIds = [...allPlayerIds];
+    const playerMap = new Map<number, Player>();
+    if (playerIds.length > 0) {
+      const players = await this.playerRepo.find({ where: { id: In(playerIds) } });
+      for (const p of players) playerMap.set(p.id, p);
+    }
+
+    const scoreMap = new Map<number, number>();
+    if (playerIds.length > 0) {
+      const statsRows = await this.gameStatsRepo
+        .createQueryBuilder('gps')
+        .innerJoin('gps.game', 'g')
+        .where('g.date = :date', { date: gameDay.date })
+        .andWhere('gps.playerId IN (:...playerIds)', { playerIds })
+        .getMany();
+      for (const gs of statsRows) {
+        const cur = scoreMap.get(gs.playerId) ?? 0;
+        scoreMap.set(gs.playerId, cur + Number(gs.fantasyScore));
+      }
+    }
+
+    const makeSlot = (id: number, pos: string) => {
+      const p = playerMap.get(id);
+      return {
+        position: pos,
+        name: p?.nameCn ?? p?.name ?? '—',
+        score: scoreMap.get(id) ?? null,
+      };
+    };
+
     return lineups.map((l, i) => ({
       rank: i + 1,
       user: { id: l.userId, username: l.user?.username ?? '—' },
       totalScore: l.totalScore !== null ? Number(l.totalScore) : null,
       totalCost: l.totalCost,
-      players: { pg: l.pgId, sg: l.sgId, sf: l.sfId, pf: l.pfId, c: l.cId },
+      players: {
+        PG: makeSlot(l.pgId, 'PG'),
+        SG: makeSlot(l.sgId, 'SG'),
+        SF: makeSlot(l.sfId, 'SF'),
+        PF: makeSlot(l.pfId, 'PF'),
+        C: makeSlot(l.cId, 'C'),
+      },
       createdAt: l.createdAt,
     }));
   }

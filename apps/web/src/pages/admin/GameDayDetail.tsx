@@ -12,6 +12,7 @@ interface PlayerStatRow {
   playerNameCn: string | null;
   position: string;
   team: string;
+  avatarUrl?: string | null;
   pts: number;
   reb: number;
   ast: number;
@@ -32,6 +33,7 @@ interface LineupRow {
 }
 
 const STATUS_COLOR: Record<string, string> = { prepare: '#f39c12', playing: '#27ae60', finish: '#4a6380' };
+const STATUS_LABEL: Record<string, string> = { prepare: '准备中', playing: '进行中', finish: '已结束' };
 
 export function GameDayDetail() {
   const { id } = useParams<{ id: string }>();
@@ -62,17 +64,17 @@ export function GameDayDetail() {
     try {
       const res = await adminClient.post(`/game-days/${id}/recalculate-salary-cap`);
       setGameDay(res.data);
-      setMessage({ text: `Salary cap updated: $${res.data.salaryCap?.toLocaleString()}`, ok: true });
+      setMessage({ text: `薪资帽已更新：$${res.data.salaryCap?.toLocaleString()}`, ok: true });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      setMessage({ text: 'Error: ' + (e.response?.data?.message ?? 'Failed to recalculate'), ok: false });
+      setMessage({ text: '错误：' + (e.response?.data?.message ?? '重算失败'), ok: false });
     } finally {
       setRecalculating(false);
     }
   };
 
   const handleComplete = async () => {
-    if (!confirm('Complete this game day? This will calculate all lineup scores.')) return;
+    if (!confirm('确认结算此赛日？将计算所有阵容得分。')) return;
     setCompleting(true);
     setMessage(null);
     try {
@@ -81,11 +83,11 @@ export function GameDayDetail() {
       load();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      setMessage({ text: 'Error: ' + (e.response?.data?.message ?? 'Unknown error'), ok: false });
+      setMessage({ text: '错误：' + (e.response?.data?.message ?? '未知错误'), ok: false });
     } finally { setCompleting(false); }
   };
 
-  if (!gameDay) return <div style={{ color: '#4a6380', padding: 20 }}>Loading...</div>;
+  if (!gameDay) return <div style={{ color: '#4a6380', padding: 20 }}>加载中…</div>;
 
   const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', color: '#4a6380', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 };
   const tdBase: React.CSSProperties = { padding: '9px 14px', fontSize: 13, borderBottom: '1px solid #1a2332' };
@@ -95,13 +97,13 @@ export function GameDayDetail() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <Link to="/admin/game-days" style={{ color: '#4a6380', fontSize: 12, textDecoration: 'none' }}>← Game Days</Link>
-          <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginTop: 6 }}>Game Day — {gameDay.date}</h1>
+          <Link to="/admin/game-days" style={{ color: '#4a6380', fontSize: 12, textDecoration: 'none' }}>← 赛日管理</Link>
+          <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 700, marginTop: 6 }}>赛日 — {gameDay.date}</h1>
           <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ background: STATUS_COLOR[gameDay.status] + '22', color: STATUS_COLOR[gameDay.status], border: `1px solid ${STATUS_COLOR[gameDay.status]}55`, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
-              {gameDay.status.toUpperCase()}
+              {STATUS_LABEL[gameDay.status] ?? gameDay.status}
             </span>
-            <span style={{ color: '#4a6380', fontSize: 12 }}>Cap: ${gameDay.salaryCap?.toLocaleString()}</span>
+            <span style={{ color: '#4a6380', fontSize: 12 }}>薪资帽: ${gameDay.salaryCap?.toLocaleString()}</span>
             <button
               onClick={handleRecalculateCap}
               disabled={recalculating}
@@ -116,7 +118,7 @@ export function GameDayDetail() {
                 opacity: recalculating ? 0.7 : 1,
               }}
             >
-              {recalculating ? 'Recalculating…' : 'Recalc Cap'}
+              {recalculating ? '计算中…' : '重算薪资帽'}
             </button>
           </div>
         </div>
@@ -124,13 +126,13 @@ export function GameDayDetail() {
           {gameDay.status === 'prepare' && (
             <button onClick={() => handleStatusChange('playing')}
               style={{ background: '#27ae60', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
-              Activate
+              激活
             </button>
           )}
           {gameDay.status === 'playing' && (
             <button onClick={handleComplete} disabled={completing}
               style={{ background: '#e94560', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 700, cursor: completing ? 'default' : 'pointer', fontSize: 14, opacity: completing ? 0.7 : 1 }}>
-              {completing ? 'Calculating...' : '✓ Complete & Score'}
+              {completing ? '结算中…' : '✓ 结算并计分'}
             </button>
           )}
         </div>
@@ -147,7 +149,7 @@ export function GameDayDetail() {
         {(['games', 'players', 'lineups'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             style={{ background: 'transparent', border: 'none', borderBottom: tab === t ? '2px solid #e94560' : '2px solid transparent', color: tab === t ? '#e94560' : '#4a6380', padding: '8px 20px', cursor: 'pointer', fontSize: 14, fontWeight: tab === t ? 600 : 400, marginBottom: -1 }}>
-            {t === 'games' ? `Games (${gameDay.games?.length ?? 0})` : t === 'players' ? `Players (${playerStats.length})` : `Lineups (${lineups.length})`}
+            {t === 'games' ? `比赛 (${gameDay.games?.length ?? 0})` : t === 'players' ? `球员 (${playerStats.length})` : `阵容 (${lineups.length})`}
           </button>
         ))}
       </div>
@@ -157,7 +159,7 @@ export function GameDayDetail() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0d1820' }}>
-                {['#', 'Home', 'Away', 'Status'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                {['#', '主队', '客队', '状态'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -168,7 +170,7 @@ export function GameDayDetail() {
                   <td style={{ ...tdBase, color: '#8899aa' }}>{g.awayTeam}</td>
                   <td style={{ ...tdBase }}>
                     <span style={{ background: (STATUS_COLOR[g.status] ?? '#888') + '22', color: STATUS_COLOR[g.status] ?? '#888', border: `1px solid ${(STATUS_COLOR[g.status] ?? '#888')}44`, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
-                      {g.status}
+                      {STATUS_LABEL[g.status] ?? g.status}
                     </span>
                   </td>
                 </tr>
@@ -181,21 +183,25 @@ export function GameDayDetail() {
       {tab === 'players' && (
         <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
           {playerStats.length === 0 ? (
-            <div style={{ padding: 24, color: '#4a6380', textAlign: 'center' }}>No player stats for this game day yet. Stats are synced during games.</div>
+            <div style={{ padding: 24, color: '#4a6380', textAlign: 'center' }}>暂无本赛日球员数据，比赛进行中会同步更新。</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#0d1820' }}>
-                    {['Player', 'Pos', 'Team', 'Game', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TO', 'MIN', 'FS'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                    {['球员', '位置', '球队', '比赛', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TO', 'MIN', 'FS'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {playerStats.map((s) => (
                     <tr key={s.id}>
                       <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>
-                        {s.playerName}
-                        {s.playerNameCn && <span style={{ color: '#4a6380', fontSize: 12, marginLeft: 4 }}>({s.playerNameCn})</span>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {s.avatarUrl && (
+                            <img src={s.avatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                          )}
+                          {s.playerName}
+                        </div>
                       </td>
                       <td style={{ ...tdBase, color: '#4a6380', fontSize: 12 }}>{s.position}</td>
                       <td style={{ ...tdBase, color: '#8899aa' }}>{s.team}</td>
@@ -224,12 +230,12 @@ export function GameDayDetail() {
       {tab === 'lineups' && (
         <div style={{ background: '#131f2e', borderRadius: 10, overflow: 'hidden' }}>
           {lineups.length === 0 ? (
-            <div style={{ padding: 24, color: '#4a6380', textAlign: 'center' }}>No lineups submitted yet.</div>
+            <div style={{ padding: 24, color: '#4a6380', textAlign: 'center' }}>暂无提交的阵容。</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0d1820' }}>
-                  {['Rank', 'User', 'Room', 'Cost', 'Score', 'Submitted'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+                  {['排名', '用户', '房间', '薪资', '得分', '提交时间'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>

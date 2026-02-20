@@ -12,16 +12,16 @@ interface Props {
 
 export function RankingsTable({ rankings }: Props) {
   if (!rankings.length) {
-    return <p style={{ color: '#aaa', textAlign: 'center' }}>No rankings yet</p>;
+    return <p style={{ color: '#aaa', textAlign: 'center' }}>暂无排名</p>;
   }
 
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
         <tr style={{ background: '#16213e' }}>
-          <th style={{ padding: '10px 16px', textAlign: 'left', color: '#aaa', fontSize: 13 }}>Rank</th>
-          <th style={{ padding: '10px 16px', textAlign: 'left', color: '#aaa', fontSize: 13 }}>Player</th>
-          <th style={{ padding: '10px 16px', textAlign: 'right', color: '#aaa', fontSize: 13 }}>Score</th>
+          <th style={{ padding: '10px 16px', textAlign: 'left', color: '#aaa', fontSize: 13 }}>排名</th>
+          <th style={{ padding: '10px 16px', textAlign: 'left', color: '#aaa', fontSize: 13 }}>用户</th>
+          <th style={{ padding: '10px 16px', textAlign: 'right', color: '#aaa', fontSize: 13 }}>得分</th>
         </tr>
       </thead>
       <tbody>

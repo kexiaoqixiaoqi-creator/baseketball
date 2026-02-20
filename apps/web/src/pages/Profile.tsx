@@ -56,13 +56,13 @@ export function Profile() {
           </div>
         </div>
         <button onClick={handleLogout} className="btn btn-outline btn-sm">
-          Logout
+          退出
         </button>
       </div>
 
       {/* Lineup history */}
       <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
-        My Lineups
+        我的阵容
         {history.length > 0 && (
           <span className="text-muted fw-600" style={{ fontSize: 13, marginLeft: 8 }}>
             ({history.length})
@@ -71,11 +71,11 @@ export function Profile() {
       </h3>
 
       {loading ? (
-        <div className="loading">Loading lineups…</div>
+        <div className="loading">加载阵容中…</div>
       ) : history.length === 0 ? (
         <div className="empty">
           <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
-          No lineups yet. Build your first lineup!
+          暂无阵容记录，快去组建第一套阵容吧！
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -96,7 +96,7 @@ export function Profile() {
                   {l.gameDayDate ?? `Day #${l.gameDayId}`}
                 </div>
                 <div className="text-muted mt-4" style={{ fontSize: 13 }}>
-                  {l.roomName ?? 'Room'} · ${l.totalCost.toLocaleString()}
+                  {l.roomName ?? '房间'} · ${l.totalCost.toLocaleString()}
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -105,10 +105,10 @@ export function Profile() {
                     <div style={{ color: 'var(--success)', fontWeight: 800, fontSize: 20 }}>
                       {l.totalScore.toFixed(1)}
                     </div>
-                    <div className="text-muted" style={{ fontSize: 11 }}>pts</div>
+                    <div className="text-muted" style={{ fontSize: 11 }}>分</div>
                   </>
                 ) : (
-                  <span className="badge badge-pending">Pending</span>
+                  <span className="badge badge-pending">待结算</span>
                 )}
               </div>
             </div>

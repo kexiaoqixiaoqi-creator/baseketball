@@ -13,6 +13,7 @@ interface Player {
   position: string;
   team: string;
   cost: number;
+  avatarUrl?: string | null;
   seasonStats?: { ppg: number; rpg: number; apg: number };
 }
 
@@ -70,7 +71,7 @@ export function LineupBuilder() {
     if (!gameDayId || !selectedRoom) return;
     lineupsApi
       .my(Number(gameDayId), selectedRoom)
-      .then((data: { id: number; players: Record<string, { id: number; name: string; team: string; cost: number }> }) => {
+      .then((data: { id: number; players: Record<string, { id: number; name: string; team: string; cost: number; avatarUrl?: string | null }> }) => {
         setExistingLineupId(data.id);
         populateFromLineup(data.players);
       })
@@ -204,15 +205,17 @@ export function LineupBuilder() {
             return (
               <div key={pos} className="pos-slot">
                 <span className="pos-label">{pos}</span>
-                {picked ? (
+                    {picked ? (
                   <>
+                    {picked.avatarUrl && (
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                        <img src={picked.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {picked.name}
                       </div>
-                      {picked.nameCn && (
-                        <div className="text-muted" style={{ fontSize: 12 }}>{picked.nameCn}</div>
-                      )}
                       <div className="text-muted" style={{ fontSize: 12 }}>
                         {picked.team} · ${picked.cost.toLocaleString()}
                       </div>
@@ -284,11 +287,16 @@ export function LineupBuilder() {
                     className={`player-item${alreadySelected ? ' selected' : ''}${positionFilled ? ' disabled' : ''}`}
                     onClick={() => !positionFilled && selectPlayer(player.position, player)}
                   >
+                    {player.avatarUrl && (
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                        <img src={player.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
                     <span className="player-pos-badge">{player.position}</span>
                     <div className="player-info">
-                      <div className="player-name">{player.name}</div>
+                      <div className="player-name">{player.nameCn ?? player.name}</div>
                       <div className="player-sub">
-                        {player.nameCn ? `${player.nameCn} · ` : ''}{player.team}
+                        {player.team}
                         {player.seasonStats ? ` · ${player.seasonStats.ppg}pt ${player.seasonStats.rpg}rb ${player.seasonStats.apg}as` : ''}
                       </div>
                     </div>

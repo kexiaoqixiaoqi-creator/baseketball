@@ -37,18 +37,18 @@ export function AdminLogin() {
   return (
     <div style={{ minHeight: '100vh', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ background: '#16213e', borderRadius: 12, padding: 40, width: 380 }}>
-        <h2 style={{ color: '#fff', marginBottom: 8 }}>Admin Panel</h2>
-        <p style={{ color: '#888', marginBottom: 24 }}>Fantasy NBA Management</p>
+        <h2 style={{ color: '#fff', marginBottom: 8 }}>管理后台</h2>
+        <p style={{ color: '#888', marginBottom: 24 }}>Fantasy NBA 管理</p>
         <p style={{ color: '#666', fontSize: 12, marginBottom: 16 }}>管理员账号需在数据库中手动创建并设置 isAdmin=true</p>
         {error && <div style={{ background: '#e94560', color: '#fff', padding: '10px 16px', borderRadius: 4, marginBottom: 16 }}>{error}</div>}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <input type="email" placeholder="Admin Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+          <input type="email" placeholder="管理员邮箱" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
             style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #333', background: '#0f3460', color: '#fff', fontSize: 15 }} required />
-          <input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+          <input type="password" placeholder="密码" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
             style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #333', background: '#0f3460', color: '#fff', fontSize: 15 }} required />
           <button type="submit" disabled={loading}
             style={{ background: '#e94560', color: '#fff', border: 'none', padding: '12px', borderRadius: 6, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? '登录中…' : '登录'}
           </button>
         </form>
       </div>

@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { GameDay, Game, Lineup, Room, GamePlayerStats, Player } from '@fantasy-nba/db';
+import { Repository, In } from 'typeorm';
+import { GameDay, Game, Lineup, Room, GamePlayerStats, Player, Team } from '@fantasy-nba/db';
+import { MappingService } from '../mapping/mapping.service';
+
+const SINA_AVATAR_BASE = 'https://www.sinaimg.cn/ty/nba/player/NBA_1_1';
 import { computeCostFromSeasonStatsRaw, computeFantasyScore, computeSalaryCapFromEligiblePlayers, ScoreWeights, CURRENT_SEASON } from '@fantasy-nba/shared';
 import { CreateGameDayDto } from './dto/create-game-day.dto';
 import { ScheduleSyncService } from '../sync/schedule.sync.service';
@@ -18,8 +21,10 @@ export class GameDaysService {
     @InjectRepository(Room) private roomRepo: Repository<Room>,
     @InjectRepository(GamePlayerStats) private gameStatsRepo: Repository<GamePlayerStats>,
     @InjectRepository(Player) private playerRepo: Repository<Player>,
+    @InjectRepository(Team) private teamRepo: Repository<Team>,
     private readonly scheduleSync: ScheduleSyncService,
     private readonly gameStatsSync: GameStatsSyncService,
+    private readonly mapping: MappingService,
   ) {}
 
   async findAll() {
@@ -107,34 +112,54 @@ export class GameDaysService {
       .createQueryBuilder('gps')
       .innerJoinAndSelect('gps.game', 'g')
       .innerJoinAndSelect('gps.player', 'p')
+      .leftJoinAndSelect('p.teamEntity', 'pteam')
       .where('g.date = :date', { date: gameDay.date })
       .orderBy('g.id')
       .addOrderBy('gps.pts', 'DESC')
       .getMany();
 
-    return stats.map((s) => ({
-      id: s.id,
-      playerId: s.playerId,
-      gameId: s.gameId,
-      playerName: s.player?.name ?? '—',
-      playerNameCn: s.player?.nameCn ?? null,
-      position: s.player?.position ?? '—',
-      team: s.player?.team ?? '—',
-      pts: s.pts,
-      reb: s.reb,
-      ast: s.ast,
-      stl: s.stl,
-      blk: s.blk,
-      to: s.toVal,
-      min: s.min,
-      fantasyScore: s.fantasyScore != null ? Number(s.fantasyScore) : null,
-      game: {
-        id: s.game.id,
-        homeTeam: s.game.homeTeam,
-        awayTeam: s.game.awayTeam,
-        status: s.game.status,
-      },
-    }));
+    const playerIds = [...new Set(stats.map((s) => s.playerId))];
+    const extIdMap = await this.mapping.getExtIdsByInternalIds('sina', 'player', playerIds);
+
+    const teamIds = new Set<number>();
+    for (const s of stats) {
+      if (s.game?.homeTeamId != null) teamIds.add(s.game.homeTeamId);
+      if (s.game?.awayTeamId != null) teamIds.add(s.game.awayTeamId);
+    }
+    const teams = teamIds.size > 0 ? await this.teamRepo.find({ where: { id: In([...teamIds]) } }) : [];
+    const teamCnMap = new Map(teams.map((t) => [t.id, t.nameCn ?? t.name]));
+
+    return stats.map((s) => {
+      const sinaId = extIdMap.get(s.playerId);
+      const avatarUrl = sinaId ? `${SINA_AVATAR_BASE}/${sinaId}.png` : null;
+      const teamCn = s.player?.teamEntity?.nameCn ?? s.player?.team ?? '—';
+      const homeTeamCn = s.game?.homeTeamId != null ? teamCnMap.get(s.game.homeTeamId) ?? s.game.homeTeam : s.game?.homeTeam ?? '—';
+      const awayTeamCn = s.game?.awayTeamId != null ? teamCnMap.get(s.game.awayTeamId) ?? s.game.awayTeam : s.game?.awayTeam ?? '—';
+      return {
+        id: s.id,
+        playerId: s.playerId,
+        gameId: s.gameId,
+        playerName: s.player?.nameCn ?? s.player?.name ?? '—',
+        playerNameCn: s.player?.nameCn ?? null,
+        position: s.player?.position ?? '—',
+        team: teamCn,
+        avatarUrl,
+        pts: s.pts,
+        reb: s.reb,
+        ast: s.ast,
+        stl: s.stl,
+        blk: s.blk,
+        to: s.toVal,
+        min: s.min,
+        fantasyScore: s.fantasyScore != null ? Number(s.fantasyScore) : null,
+        game: {
+          id: s.game.id,
+          homeTeam: homeTeamCn,
+          awayTeam: awayTeamCn,
+          status: s.game.status,
+        },
+      };
+    });
   }
 
   async getLineups(gameDayId: number) {
@@ -301,6 +326,7 @@ export class GameDaysService {
         : await this.playerRepo
             .createQueryBuilder('p')
             .where('p.teamId IN (:...teamIds)', { teamIds: Array.from(teamIds) })
+            .leftJoinAndSelect('p.teamEntity', 'team')
             .leftJoinAndSelect(
               'p.seasonStats',
               'ss',
@@ -359,17 +385,23 @@ export class GameDaysService {
       });
     }
 
+    const extIdMap = await this.mapping.getExtIdsByInternalIds('sina', 'player', withCost.map((x) => x.p.id));
     const players = withCost.map(({ p, stats, cost }) => {
       const gameStats = gameStatsMap.has(p.id) ? gameStatsMap.get(p.id)! : null;
+      const sinaId = extIdMap.get(p.id);
+      const avatarUrl = sinaId ? `${SINA_AVATAR_BASE}/${sinaId}.png` : null;
+      const teamCn = p.teamEntity?.nameCn ?? p.team;
       return {
         id: p.id,
         name: p.name,
         nameCn: p.nameCn ?? null,
         position: p.position,
-        team: p.team,
+        team: teamCn,
+        teamEn: p.team,
         jerseyNumber: p.jerseyNumber,
         isActive: p.isActive,
         cost,
+        avatarUrl,
         score: scoreMap.has(p.id) ? scoreMap.get(p.id)! : null,
         gameStats: gameStats
           ? {
@@ -399,6 +431,13 @@ export class GameDaysService {
 
   private async mapGameDayForUser(gd: GameDay, salaryCap: number) {
     const games = await this.gameRepo.find({ where: { date: gd.date } });
+    const teamIds = new Set<number>();
+    for (const g of games) {
+      if (g.homeTeamId != null) teamIds.add(g.homeTeamId);
+      if (g.awayTeamId != null) teamIds.add(g.awayTeamId);
+    }
+    const teams = teamIds.size > 0 ? await this.teamRepo.find({ where: { id: In([...teamIds]) } }) : [];
+    const teamCnMap = new Map(teams.map((t) => [t.id, t.nameCn ?? t.name]));
     return {
       id: gd.id,
       date: gd.date,
@@ -406,8 +445,8 @@ export class GameDaysService {
       salaryCap,
       games: games.map((g) => ({
         id: g.id,
-        homeTeam: g.homeTeam,
-        awayTeam: g.awayTeam,
+        homeTeam: g.homeTeamId != null ? teamCnMap.get(g.homeTeamId) ?? g.homeTeam : g.homeTeam,
+        awayTeam: g.awayTeamId != null ? teamCnMap.get(g.awayTeamId) ?? g.awayTeam : g.awayTeam,
         status: g.status,
       })),
     };

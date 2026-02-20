@@ -11,6 +11,7 @@ import {
   Game,
 } from '@fantasy-nba/db';
 import { GameDaysModule } from '../game-days/game-days.module';
+import { MappingModule } from '../mapping/mapping.module';
 import { LineupsService } from './lineups.service';
 import { LineupsController } from './lineups.controller';
 
@@ -27,6 +28,7 @@ import { LineupsController } from './lineups.controller';
       Game,
     ]),
     GameDaysModule,
+    MappingModule,
   ],
   providers: [LineupsService],
   controllers: [LineupsController],

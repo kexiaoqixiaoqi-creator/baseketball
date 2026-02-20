@@ -20,7 +20,7 @@ export function Login() {
       navigate('/');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message ?? 'Login failed');
+      setError(e.response?.data?.message ?? '登录失败');
     } finally {
       setLoading(false);
     }
@@ -30,15 +30,15 @@ export function Login() {
     <div className="page-narrow">
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <div style={{ fontSize: 48, marginBottom: 10 }}>🏀</div>
-        <h1 style={{ fontSize: 24, fontWeight: 800 }}>Welcome back</h1>
-        <p className="text-muted mt-4" style={{ fontSize: 14 }}>Sign in to your account</p>
+        <h1 style={{ fontSize: 24, fontWeight: 800 }}>欢迎回来</h1>
+        <p className="text-muted mt-4" style={{ fontSize: 14 }}>登录你的账号</p>
       </div>
 
       <div className="card">
         {error && <div className="alert alert-error" style={{ marginBottom: 14 }}>{error}</div>}
         <form onSubmit={handleSubmit} className="form-stack">
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">邮箱</label>
             <input
               type="email"
               placeholder="you@example.com"
@@ -50,7 +50,7 @@ export function Login() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label">密码</label>
             <input
               type="password"
               placeholder="••••••••"
@@ -62,12 +62,12 @@ export function Login() {
             />
           </div>
           <button type="submit" disabled={loading} className="btn btn-primary btn-full" style={{ marginTop: 4 }}>
-            {loading ? 'Signing in…' : 'Sign In'}
+            {loading ? '登录中…' : '登录'}
           </button>
         </form>
         <p className="text-muted mt-16" style={{ textAlign: 'center', fontSize: 14 }}>
-          No account?{' '}
-          <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>Register</Link>
+          还没有账号？{' '}
+          <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>立即注册</Link>
         </p>
       </div>
     </div>
