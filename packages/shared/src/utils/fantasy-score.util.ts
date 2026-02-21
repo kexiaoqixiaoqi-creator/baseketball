@@ -1,4 +1,4 @@
-import { LINEUP_SLOTS, SALARY_CAP_OFFICIAL, SCORE_WEIGHTS_DEFAULT } from '../constants/game.constants';
+import { SALARY_CAP_OFFICIAL, SCORE_WEIGHTS_DEFAULT } from '../constants/game.constants';
 
 export interface StatLine {
   pts: number;

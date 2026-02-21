@@ -158,7 +158,7 @@ export function Rankings() {
                 {entry.players && (
                   <div className="rank-entry-players">
                     {(['PG', 'SG', 'SF', 'PF', 'C'] as const).map((pos) => {
-                      const slot = entry.players[pos];
+                      const slot = entry.players![pos];
                       if (!slot) return null;
                       return (
                         <div key={pos} className="rank-player-slot">
