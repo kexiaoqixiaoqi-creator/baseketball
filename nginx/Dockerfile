@@ -3,7 +3,7 @@
 # Build context: monorepo root
 # ==============================================================================
 
-FROM nginx:1.27-alpine
+FROM --platform=linux/amd64 nginx:1.27-alpine
 
 COPY nginx/fantasy-nba.conf /etc/nginx/conf.d/default.conf
 
