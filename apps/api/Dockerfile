@@ -4,7 +4,7 @@
 # ==============================================================================
 
 # ---- Builder Stage ----
-FROM --platform=linux/amd64 node:20-alpine AS builder
+FROM  node:20-alpine AS builder
 WORKDIR /app
 
 # Copy workspace manifests first for layer caching

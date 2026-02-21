@@ -4,7 +4,7 @@
 # ==============================================================================
 
 # ── Stage 1: 构建 React 前端 ──────────────────────────────────────────────────
-FROM --platform=linux/amd64 node:20-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # VITE_API_URL 构建时注入，生产使用相对路径 /api（同域，无 CORS）
