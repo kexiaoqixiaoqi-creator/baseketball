@@ -2,7 +2,6 @@ services:
   # ── MySQL 数据库 ──────────────────────────────────────────────────────────
   db:
     image: mysql:8.0
-    platform: linux/amd64
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
@@ -22,7 +21,6 @@ services:
 
   # ── NestJS API ────────────────────────────────────────────────────────────
   api:
-    platform: linux/amd64
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -51,7 +49,6 @@ services:
 
   # ── React 前端静态服务 ────────────────────────────────────────────────────
   web:
-    platform: linux/amd64
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -64,7 +61,6 @@ services:
 
   # ── Nginx 反向代理（对外唯一入口）────────────────────────────────────────
   nginx:
-    platform: linux/amd64
     build:
       context: .
       dockerfile: nginx/Dockerfile

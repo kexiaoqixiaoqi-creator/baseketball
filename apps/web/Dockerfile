@@ -24,7 +24,7 @@ COPY apps/web/ ./apps/web/
 RUN npm run build --workspace=apps/web
 
 # ── Stage 2: Nginx 静态服务 ───────────────────────────────────────────────────
-FROM --platform=linux/amd64 nginx:1.27-alpine
+FROM  nginx:1.27-alpine
 
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
