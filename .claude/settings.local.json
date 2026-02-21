@@ -13,7 +13,15 @@
       "Bash(lsof:*)",
       "Bash(xargs:*)",
       "Bash(fuser:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(command -v:*)",
+      "Bash(expect:*)",
+      "Bash(docker info:*)",
+      "Bash(docker pull:*)",
+      "Bash(docker save:*)",
+      "Bash(docker images:*)",
+      "Bash(docker rmi:*)",
+      "Bash(docker image inspect:*)"
     ]
   }
 }

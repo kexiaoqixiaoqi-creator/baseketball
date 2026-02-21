@@ -56,7 +56,8 @@ fi
 
 # ── 构建 Docker 镜像 ───────────────────────────────────────────────────────
 log "构建 Docker 镜像${NO_CACHE:+（无缓存）}..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build $NO_CACHE
+# DOCKER_BUILDKIT=0 使用经典构建器，直接使用本地镜像，不向 Docker Hub 验证 metadata
+DOCKER_BUILDKIT=0 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build $NO_CACHE
 
 # ── 滚动更新容器 ───────────────────────────────────────────────────────────
 log "停止旧容器（保留数据卷）..."
