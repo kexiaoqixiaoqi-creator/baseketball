@@ -102,13 +102,33 @@ export class GameDaysService {
     return { updated: result.affected ?? 0 };
   }
 
-  /** 将指定日期的 playing 赛日结算为 finish */
+  /** 将指定日期的 playing 赛日结算为 finish（执行完整 complete 流程：标记比赛、计算 lineup 分数） */
   async finishGameDaysForDate(dateStr: string): Promise<{ updated: number }> {
-    const result = await this.gameDayRepo.update(
-      { date: dateStr, status: 'playing' },
-      { status: 'finish' },
+    const normalizedDate = dateStr.slice(0, 10);
+    const list = await this.gameDayRepo.find({
+      where: { date: normalizedDate, status: 'playing' },
+    });
+    const allForDate = await this.gameDayRepo.find({
+      where: { date: normalizedDate },
+    });
+    this.logger.log(
+      `[finishGameDaysForDate] date=${normalizedDate}, playing=${list.length}, allForDate=${allForDate.length}, ids=${allForDate.map((g) => `${g.id}(${g.status})`).join(', ')}`,
     );
-    return { updated: result.affected ?? 0 };
+    if (list.length === 0 && allForDate.length > 0) {
+      this.logger.warn(`[finishGameDaysForDate] 未找到 status=playing，当日赛日状态: ${JSON.stringify(allForDate.map((g) => ({ id: g.id, date: g.date, status: g.status })))}`);
+    }
+    let updated = 0;
+    for (const gd of list) {
+      try {
+        this.logger.log(`[finishGameDaysForDate] 开始结算 gameDay id=${gd.id} date=${gd.date}`);
+        await this.complete(gd.id);
+        updated++;
+        this.logger.log(`[finishGameDaysForDate] 结算完成 gameDay id=${gd.id}`);
+      } catch (err) {
+        this.logger.warn(`[finishGameDaysForDate] complete gameDay ${gd.id} failed: ${(err as Error).message}`);
+      }
+    }
+    return { updated };
   }
 
   /** 重新计算并更新 salaryCap（基于当日可选球员 + official room 系数） */
@@ -208,7 +228,8 @@ export class GameDaysService {
       throw new BadRequestException('Game day is already completed');
     }
 
-    await this.gameRepo.update({ date: gameDay.date }, { status: 'finish' });
+    const gamesResult = await this.gameRepo.update({ date: gameDay.date }, { status: 'finish' });
+    this.logger.log(`[complete] gameDayId=${gameDayId} date=${gameDay.date}: 更新 nba_games ${gamesResult.affected ?? 0} 场`);
 
     const lineups = await this.lineupRepo.find({ where: { gameDayId } });
     const roomCache = new Map<number, Room>();
@@ -254,6 +275,7 @@ export class GameDaysService {
     }
 
     await this.gameDayRepo.update(gameDayId, { status: 'finish' });
+    this.logger.log(`[complete] gameDayId=${gameDayId} 完成: ${lineups.length} 个 lineup 已计分`);
     return { message: `Game day ${gameDayId} completed. ${lineups.length} lineups scored.` };
   }
 

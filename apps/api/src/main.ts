@@ -7,7 +7,9 @@ import { seedAdminUser } from './seed-admin';
 
 async function bootstrap() {
   await ensureDatabase();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['log', 'error', 'warn', 'debug', 'verbose'],
+  });
   await seedAdminUser(app);
   app.enableCors({
     origin: ['http://localhost:5173', 'http://localhost:5174'],

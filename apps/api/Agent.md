@@ -207,6 +207,8 @@ npm run build             # 生产构建
 
 | 方法 | 路径 | 认证 | 说明 |
 |---|---|---|---|
+| GET | `/admin/scraper/cron-status` | Admin JWT | 定时任务监控：上次执行、状态、下次触发时间 |
+| POST | `/admin/scraper/finish-game-days` | Admin JWT | 手动结算指定日期赛日（`?date=YYYY-MM-DD`，缺省为当日） |
 | POST | `/admin/scraper/sync/rosters` | Admin JWT | 同步全部 30 支球队及球员名单 |
 | POST | `/admin/scraper/sync/season-stats` | Admin JWT | 同步球员赛季均值，重算薪资 |
 | POST | `/admin/scraper/sync/schedule` | Admin JWT | 同步赛程（`?date=YYYY-MM-DD&span=1`） |
@@ -217,8 +219,10 @@ npm run build             # 生产构建
 | POST | `/admin/scraper/aggregate/game-day` | Admin JWT | 聚合：同步某日赛程+比赛数据+赛季数据（`?date=YYYY-MM-DD`） |
 
 **Cron 定时任务**（API 启动后自动运行）：
+
+**调试说明**：修改系统时间后定时任务不会立即触发，因 node-cron 使用 `setInterval` 按真实流逝时间（非系统时钟）轮询。需**先改系统时间，再重启 API 进程**，启动时当前时刻若匹配 cron 表达式则会执行。
 - 00:00 CST — activate-game-days（当日 prepare 赛日 → playing）
-- 16:00 CST — finish-game-days（当日 playing 赛日 → finish 结算）
-- 18:00 CST — season-stats sync（球员赛季场均、薪资重算）
-- 18:30 CST — create-game-day（自动创建当日赛日）
+- 15:30 CST — finish-game-days（当日 playing 赛日 → finish 结算）
+- 15:45 CST — season-stats sync（球员赛季场均、薪资重算）
+- 16:00 CST — create-game-day（自动创建下一日赛日）
 - 每 5 分钟 — 同步 status=playing 的比赛日下的比赛球员数据

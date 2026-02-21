@@ -1,15 +1,34 @@
-import { Controller, Post, Param, ParseIntPipe, Query, UseGuards, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Param, ParseIntPipe, Query, UseGuards, InternalServerErrorException } from '@nestjs/common';
 import { ScraperService } from './scraper.service';
+import { CronService } from './cron.service';
+import { GameDaysService } from '../game-days/game-days.service';
 import { AdminGuard } from '../auth/admin.guard';
 
 /**
  * Scraper endpoints — require admin JWT.
- * Routes: POST /admin/scraper/sync/rosters, /sync/schedule, etc.
+ * Routes: GET /admin/scraper/cron-status, POST /admin/scraper/finish-game-days, etc.
  */
 @Controller('admin/scraper')
 @UseGuards(AdminGuard)
 export class ScraperController {
-  constructor(private readonly scraperService: ScraperService) {}
+  constructor(
+    private readonly scraperService: ScraperService,
+    private readonly cronService: CronService,
+    private readonly gameDaysService: GameDaysService,
+  ) {}
+
+  @Get('cron-status')
+  getCronStatus() {
+    return this.cronService.getCronStatus();
+  }
+
+  @Post('finish-game-days')
+  async finishGameDays(@Query('date') date?: string) {
+    const dateStr =
+      date?.slice(0, 10) ??
+      new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
+    return this.gameDaysService.finishGameDaysForDate(dateStr);
+  }
 
   @Post('sync/rosters')
   async syncRosters() {
