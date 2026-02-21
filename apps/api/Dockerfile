@@ -27,7 +27,7 @@ RUN npm run build --workspace=apps/api
 RUN npm prune --omit=dev
 
 # ---- Runner Stage ----
-FROM --platform=linux/amd64 node:20-alpine
+FROM node:20-alpine
 WORKDIR /app
 
 # Copy pruned node_modules (external runtime deps: mysql2, passport, etc.)
