@@ -209,6 +209,38 @@ export function Home() {
     }
   };
 
+  const handleCloseSuccess = () => {
+    setSuccess(false);
+    if (selectedDayId && officialRoom?.id) {
+      gameDaysApi.players(selectedDayId, officialRoom.id).then(
+        (res: { players: Player[]; salaryCap: number }) => {
+          setPlayers(res.players);
+          setSalaryCap(res.salaryCap);
+        },
+      );
+      if (isAuthenticated) {
+        lineupsApi
+          .my(selectedDayId, officialRoom.id)
+          .then(
+            (data: {
+              id: number;
+              totalScore: number | null;
+              players: Record<string, { id: number; name: string; team: string; cost: number; actualScore: number | null; avatarUrl?: string | null }>;
+            }) => {
+              setExistingLineupId(data.id);
+              setMyLineup({ totalScore: data.totalScore, players: data.players });
+              populateFromLineup(data.players);
+            },
+          )
+          .catch(() => {
+            setExistingLineupId(null);
+            setMyLineup(null);
+            reset();
+          });
+      }
+    }
+  };
+
   const capPercent = salaryCap > 0 ? Math.min(100, (totalCost / salaryCap) * 100) : 0;
   const overCap = totalCost > salaryCap;
   /** playing | finish → 只读展示（阵容+得分）；prepare → 可选人、可提交 */
@@ -448,14 +480,14 @@ export function Home() {
       )}
 
       {success && (
-        <div className="home-success-overlay" onClick={() => setSuccess(false)}>
+        <div className="home-success-overlay" onClick={handleCloseSuccess}>
           <div className="home-success-modal card" onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>🎉</div>
             <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--success)' }}>
               {existingLineupId ? '阵容已更新！' : '阵容已提交！'}
             </h2>
             <p className="text-muted mt-6" style={{ fontSize: 13 }}>你的阵容已保存。</p>
-            <button onClick={() => setSuccess(false)} className="btn btn-primary btn-full mt-10">
+            <button onClick={handleCloseSuccess} className="btn btn-primary btn-full mt-10">
               知道了
             </button>
           </div>

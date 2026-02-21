@@ -522,6 +522,44 @@ body {
   padding: 12px 12px 80px;
 }
 
+/* 移动端：顶部固定，仅球员池可滚动 */
+@media (max-width: 767px) {
+  .page-home {
+    height: calc(100dvh - var(--nav-height) - var(--bottom-nav-height));
+    max-height: calc(100dvh - var(--nav-height) - var(--bottom-nav-height));
+    padding: 12px 12px 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .page-home .home-header,
+  .page-home .home-empty,
+  .page-home .home-lineup-card {
+    flex-shrink: 0;
+  }
+  .page-home .home-players-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .page-home .home-players-section .home-section-title {
+    flex-shrink: 0;
+  }
+  .page-home .home-players-section .home-player-list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 0;
+  }
+  .page-home .home-players-section .home-section-title {
+    margin-bottom: 6px;
+  }
+}
+
 .page-home .home-header {
   margin-bottom: 8px;
 }

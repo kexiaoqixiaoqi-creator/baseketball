@@ -217,7 +217,8 @@ npm run build             # 生产构建
 | POST | `/admin/scraper/aggregate/game-day` | Admin JWT | 聚合：同步某日赛程+比赛数据+赛季数据（`?date=YYYY-MM-DD`） |
 
 **Cron 定时任务**（API 启动后自动运行）：
-- 07:00 CST — roster sync
-- 07:30 CST — season-stats sync
-- 08:00 CST — schedule sync
-- 08:00–14:00 CST 每 5 分钟 — 同步 playing 比赛
+- 00:00 CST — activate-game-days（当日 prepare 赛日 → playing）
+- 16:00 CST — finish-game-days（当日 playing 赛日 → finish 结算）
+- 18:00 CST — season-stats sync（球员赛季场均、薪资重算）
+- 18:30 CST — create-game-day（自动创建当日赛日）
+- 每 5 分钟 — 同步 status=playing 的比赛日下的比赛球员数据

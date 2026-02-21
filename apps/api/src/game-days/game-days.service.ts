@@ -93,6 +93,24 @@ export class GameDaysService {
     return this.findOne(id);
   }
 
+  /** 将指定日期的 prepare 赛日激活为 playing */
+  async activateGameDaysForDate(dateStr: string): Promise<{ updated: number }> {
+    const result = await this.gameDayRepo.update(
+      { date: dateStr, status: 'prepare' },
+      { status: 'playing' },
+    );
+    return { updated: result.affected ?? 0 };
+  }
+
+  /** 将指定日期的 playing 赛日结算为 finish */
+  async finishGameDaysForDate(dateStr: string): Promise<{ updated: number }> {
+    const result = await this.gameDayRepo.update(
+      { date: dateStr, status: 'playing' },
+      { status: 'finish' },
+    );
+    return { updated: result.affected ?? 0 };
+  }
+
   /** 重新计算并更新 salaryCap（基于当日可选球员 + official room 系数） */
   async recalculateSalaryCap(gameDayId: number) {
     const gd = await this.gameDayRepo.findOne({ where: { id: gameDayId } });
