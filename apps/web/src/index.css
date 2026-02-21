@@ -517,47 +517,56 @@ body {
 .mobile-only { display: block; }
 @media (min-width: 768px) { .mobile-only { display: none; } }
 
-/* ── Home page: compact mobile layout ── */
+/* ── Home page: 整页可滚动，我的阵容 sticky 吸顶 ── */
 .page-home {
   padding: 12px 12px 80px;
 }
 
-/* 移动端：顶部固定，仅球员池可滚动 */
+/* 移动端：整页滚动，阵容卡吸顶 */
 @media (max-width: 767px) {
   .page-home {
-    height: calc(100dvh - var(--nav-height) - var(--bottom-nav-height));
-    max-height: calc(100dvh - var(--nav-height) - var(--bottom-nav-height));
-    padding: 12px 12px 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    padding: 12px 12px 80px;
   }
-  .page-home .home-header,
-  .page-home .home-empty,
-  .page-home .home-lineup-card {
-    flex-shrink: 0;
+  .page-home .home-lineup-sticky {
+    position: sticky;
+    top: var(--nav-height);
+    z-index: 50;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: var(--bg-card);
   }
-  .page-home .home-players-section {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .page-home .home-players-section .home-section-title {
-    flex-shrink: 0;
-  }
-  .page-home .home-players-section .home-player-list {
-    flex: 1;
-    min-height: 0;
-    max-height: none;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    margin-bottom: 0;
-  }
-  .page-home .home-players-section .home-section-title {
-    margin-bottom: 6px;
-  }
+}
+
+/* 阵容头部：标题 + 薪资 + 更新按钮（同一行） */
+.page-home .home-lineup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.page-home .home-lineup-header .home-section-title {
+  margin-bottom: 0;
+}
+.page-home .home-lineup-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-home .home-salary-inline {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.page-home .home-submit-inline {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  min-height: 28px;
+}
+.btn-xs {
+  padding: 4px 10px;
+  font-size: 11px;
 }
 
 .page-home .home-header {
@@ -671,7 +680,7 @@ body {
 }
 
 .page-home .home-salary-tracker {
-  padding: 6px 8px;
+  padding: 0;
   margin-bottom: 6px;
 }
 
@@ -786,9 +795,6 @@ body {
   font-size: 12px;
 }
 
-.page-home .home-submit-btn {
-  margin-top: 10px;
-}
 
 .page-home .home-login-hint {
   font-size: 11px;
@@ -801,8 +807,7 @@ body {
 
 .page-home .home-player-list {
   padding: 0;
-  max-height: 300px;
-  overflow-y: auto;
+  /* 无 max-height/overflow，随整页滚动 */
 }
 
 .page-home .home-player-list .player-item {
@@ -983,10 +988,6 @@ body {
 
   .page-home .home-player-meta {
     font-size: 11px;
-  }
-
-  .page-home .home-player-list {
-    max-height: 400px;
   }
 
   .page-home .home-player-list .player-item {

@@ -262,7 +262,7 @@ export function Home() {
 
   return (
     <div className="page page-home">
-      {/* Header + game day + room */}
+      {/* Header + game day（随整页滚动） */}
       <div className="home-header">
         {displayDays.length > 0 && (
           <div className="home-day-chips">
@@ -298,9 +298,32 @@ export function Home() {
 
       {selectedDay && (
         <>
-          {/* ── My Lineup (upper) ── */}
-          <div className="card home-lineup-card">
-            <h3 className="home-section-title">我的阵容</h3>
+          {/* ── 我的阵容（sticky 吸顶，滑动时始终可见）── */}
+          <div className="card home-lineup-card home-lineup-sticky">
+            <div className="home-lineup-header">
+              <h3 className="home-section-title">我的阵容</h3>
+              {!isViewMode && (
+                <div className="home-lineup-actions">
+                  <span
+                    className="home-salary-inline"
+                    style={{ color: overCap ? 'var(--primary)' : 'var(--text)' }}
+                  >
+                    ${totalCost.toLocaleString()}/${salaryCap.toLocaleString()}
+                  </span>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!isValid() || submitting}
+                    className={`btn btn-xs home-submit-inline ${isValid() ? 'btn-primary' : 'btn-ghost'}`}
+                  >
+                    {submitting
+                      ? '…'
+                      : existingLineupId
+                        ? '更新'
+                        : '提交'}
+                  </button>
+                </div>
+              )}
+            </div>
             {isViewMode && myLineup && (
               <div className="home-total-score">
                 总分：{' '}
@@ -317,12 +340,6 @@ export function Home() {
             )}
             {!isViewMode && (
               <div className="salary-tracker home-salary-tracker">
-                <div className="salary-tracker-header">
-                  <span className="text-muted">已用薪资</span>
-                  <span style={{ fontWeight: 700, color: overCap ? 'var(--primary)' : 'var(--text)' }}>
-                    ${totalCost.toLocaleString()} / ${salaryCap.toLocaleString()}
-                  </span>
-                </div>
                 <div className="salary-tracker-bar">
                   <div
                     className="salary-tracker-fill"
@@ -395,21 +412,8 @@ export function Home() {
 
             {error && <div className="alert alert-error home-alert">{error}</div>}
 
-            {!isViewMode && (
-              <>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!isValid() || submitting}
-                  className={`btn btn-full btn-sm home-submit-btn ${isValid() ? 'btn-primary' : 'btn-ghost'}`}
-                >
-                  {submitting
-                    ? (existingLineupId ? '更新中…' : '提交中…')
-                    : (existingLineupId ? '更新阵容' : '提交阵容')}
-                </button>
-                {!isAuthenticated && (
-                  <p className="text-muted home-login-hint">需登录后才能提交</p>
-                )}
-              </>
+            {!isViewMode && !isAuthenticated && (
+              <p className="text-muted home-login-hint">需登录后才能提交</p>
             )}
           </div>
 
