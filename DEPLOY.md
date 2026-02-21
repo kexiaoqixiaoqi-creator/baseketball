@@ -167,6 +167,8 @@ ADMIN_PASSWORD=your_admin_password
 
 `VITE_API_URL=/api` 默认即正确，无需修改。
 
+**首次部署需建表**：在 `.env.docker` 中增加 `DB_SYNCHRONIZE=true`，启动成功后**务必移除或注释**该行，避免误改生产 schema。
+
 ### 第五步：一键部署
 
 ```bash
@@ -176,7 +178,17 @@ bash deploy.sh --skip-pull --no-cache
 
 脚本会自动完成：构建四个镜像 → 启动容器 → 等待服务就绪 → 清理旧镜像。
 
-### 第六步：验证部署
+### 第六步：验证部署并关闭建表
+
+部署成功后，编辑 `.env.docker` 删除或注释 `DB_SYNCHRONIZE=true`，然后重启 API：
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.docker up -d api
+```
+
+### 第七步：验证服务
+
+**默认管理员账号**（首次部署自动创建）：用户名 `admin`，邮箱 `admin@qq.com`，密码 `12345678`。可前往 `/admin/login` 登录管理后台。
 
 ```bash
 # 查看容器状态（四个容器均应为 Up）
@@ -221,6 +233,7 @@ bash deploy.sh
 | `DB_USERNAME`           |      | `fantasy_nba`      | 应用数据库用户                   |
 | `DB_PASSWORD`           | ✅   | —                  | 应用数据库密码                   |
 | `DB_DATABASE`           |      | `fantasy_nba_prod` | 数据库名                         |
+| `DB_SYNCHRONIZE`        |      | 空                 | 首次建表填 `true`，成功后移除    |
 | `JWT_SECRET`            | ✅   | —                  | JWT 签名密钥（≥ 32 字符）        |
 | `JWT_EXPIRES_IN`        |      | `7d`               | Token 有效期                     |
 | `VITE_API_URL`          |      | `/api`             | 前端访问 API 的路径（通常不改）  |
