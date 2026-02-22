@@ -405,11 +405,24 @@ export function Home() {
 
       {selectedDay && (
         <>
-          {/* ── 我的阵容（sticky 吸顶，3 行×2 列卡片：C+总分 / PF+SF / SG+PG）── */}
+          {/* ── 我的阵容（sticky 吸顶）── */}
           <div className="card home-lineup-card home-lineup-sticky">
             <div className="home-lineup-header">
               <h3 className="home-section-title">我的阵容</h3>
-              {!isViewMode && (
+              {isViewMode && myLineup ? (
+                <div className="home-lineup-total-header">
+                  <span className="home-lineup-total-value">
+                    {(
+                      myLineup.totalScore ??
+                      Object.values(myLineup.players).reduce(
+                        (sum, p) => sum + (p?.actualScore ?? 0),
+                        0,
+                      )
+                    ).toFixed(1)}
+                  </span>
+                  <span className="home-lineup-total-unit">分</span>
+                </div>
+              ) : (
                 <div className="home-lineup-actions">
                   <span
                     className="home-salary-inline"
@@ -446,38 +459,19 @@ export function Home() {
             )}
 
             <div className="home-lineup-grid">
-              {/* 第一行：C、总分 */}
-              {(['C', 'TOTAL'] as const).map((key) =>
-                key === 'TOTAL' ? (
-                  <div key="TOTAL" className="home-lineup-grid-card home-lineup-total-card">
-                    <span className="home-lineup-card-label">总分</span>
-                    <span className="home-lineup-total-value">
-                      {isViewMode && myLineup
-                        ? (
-                            myLineup.totalScore ??
-                            Object.values(myLineup.players).reduce(
-                              (sum, p) => sum + (p?.actualScore ?? 0),
-                              0,
-                            )
-                          ).toFixed(1)
-                        : '—'}
-                    </span>
-                    {isViewMode && myLineup && <span className="home-lineup-total-unit">分</span>}
-                  </div>
-                ) : (
-                  <LineupSlotCard
-                    key={key}
-                    pos={key}
-                    isViewMode={isViewMode}
-                    myLineup={myLineup}
-                    selections={selections}
-                    posFilter={posFilter}
-                    setPosFilter={setPosFilter}
-                    removePlayer={removePlayer}
-                    getPerformanceTag={getPerformanceTag}
-                  />
-                ),
-              )}
+              {/* 第一行：C 居中 */}
+              <div className="home-lineup-c-row-wrap">
+                <LineupSlotCard
+                  pos="C"
+                  isViewMode={isViewMode}
+                  myLineup={myLineup}
+                  selections={selections}
+                  posFilter={posFilter}
+                  setPosFilter={setPosFilter}
+                  removePlayer={removePlayer}
+                  getPerformanceTag={getPerformanceTag}
+                />
+              </div>
               {/* 第二行：PF、SF */}
               {(['PF', 'SF'] as const).map((pos) => (
                 <LineupSlotCard

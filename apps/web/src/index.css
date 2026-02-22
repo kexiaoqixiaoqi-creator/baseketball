@@ -770,34 +770,33 @@ body {
   white-space: nowrap;
 }
 
-/* 总分卡片：单行紧凑 */
-.page-home .home-lineup-total-card {
+/* 总分：展示在 header 右侧 */
+.page-home .home-lineup-total-header {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.page-home .home-lineup-total-card .home-lineup-card-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  padding: 0;
-  min-width: 0;
+  align-items: baseline;
+  gap: 3px;
 }
 
 .page-home .home-lineup-total-value {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--success);
 }
 
 .page-home .home-lineup-total-unit {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
+}
+
+/* C 位单独居中行 */
+.page-home .home-lineup-c-row-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+}
+
+.page-home .home-lineup-c-row-wrap .home-lineup-slot-card {
+  width: calc(50% - 2px);
 }
 
 /* 球员槽位卡片 */
@@ -866,7 +865,7 @@ body {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto auto;
-  gap: 1px 4px;
+  gap: 3px 4px;
   min-width: 0;
   align-items: center;
 }
