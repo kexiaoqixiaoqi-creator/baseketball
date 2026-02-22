@@ -51,6 +51,7 @@ export class SinaClientService {
       s: 'stats',
       a: 'players',
       tid,
+      season: String(this.season),
       season_type: 'reg',
       split: 'average',
     });

@@ -31,6 +31,97 @@ interface Player {
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+/** 阵容网格中的单个位置卡片（头像占 2 行左侧，信息分两行右侧） */
+function LineupSlotCard({
+  pos,
+  isViewMode,
+  myLineup,
+  selections,
+  posFilter,
+  setPosFilter,
+  removePlayer,
+  getPerformanceTag,
+}: {
+  pos: string;
+  isViewMode: boolean;
+  myLineup: { totalScore: number | null; players: Record<string, { id: number; name: string; team: string; cost: number; actualScore: number | null; avatarUrl?: string | null }> } | null;
+  selections: Record<string, { id: number; name: string; team: string; cost: number; avatarUrl?: string | null } | null>;
+  posFilter: string;
+  setPosFilter: (pos: string) => void;
+  removePlayer: (pos: string) => void;
+  getPerformanceTag: (score: number | null | undefined, cost: number) => '爆' | '猛' | null;
+}) {
+  const slot = isViewMode && myLineup ? myLineup.players[pos] : selections[pos];
+  const picked = slot
+    ? {
+        name: slot.name ?? '未知',
+        team: slot.team ?? '',
+        cost: slot.cost ?? 0,
+        actualScore: slot && 'actualScore' in slot ? (slot as { actualScore?: number | null }).actualScore : null,
+        avatarUrl: slot && 'avatarUrl' in slot ? (slot as { avatarUrl?: string | null }).avatarUrl : null,
+      }
+    : null;
+  const isSelectedPos = posFilter === pos;
+  const perfTag = isViewMode && picked ? getPerformanceTag(picked.actualScore, picked.cost) : null;
+
+  return (
+    <div
+      className={`home-lineup-grid-card home-lineup-slot-card${isSelectedPos ? ' selected-pos' : ''} clickable-slot`}
+      role="button"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('.home-remove-btn')) return;
+        setPosFilter(pos);
+      }}
+    >
+      {picked ? (
+        <div className="home-lineup-slot-inner">
+          <div className="home-lineup-slot-avatar-wrap">
+            <div className="home-lineup-slot-avatar">
+              {picked.avatarUrl ? (
+                <img src={picked.avatarUrl} alt="" />
+              ) : (
+                <div className="home-lineup-slot-avatar-placeholder" />
+              )}
+            </div>
+            <span className="home-lineup-card-label pos-label">{pos}</span>
+          </div>
+          <div className="home-lineup-slot-info">
+            <span className="home-player-name">{picked.name}</span>
+            <span className="team-badge home-slot-team">{picked.team}</span>
+            <span className="home-pos-cost-meta home-slot-cost">${picked.cost.toLocaleString()}</span>
+            {isViewMode ? (
+              <div className="home-lineup-slot-score-cell">
+                {perfTag && <span className={`perf-tag perf-tag-${perfTag}`}>{perfTag}</span>}
+                <span className="home-pos-score home-pos-score-emphasis">
+                  {(picked.actualScore ?? 0).toFixed(1)} 分
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removePlayer(pos);
+                }}
+                className="home-remove-btn home-slot-remove"
+              >
+                移除
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="home-lineup-slot-empty">
+          <span className="home-lineup-card-label pos-label">{pos}</span>
+          <span className="text-muted home-pick-placeholder">
+            {isViewMode ? '—' : `选择 ${pos}`}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** 增强标签：score - cost/1000 > 20 → 爆；> 10 → 猛 */
 function getPerformanceTag(score: number | null | undefined, cost: number): '爆' | '猛' | null {
   const val = (score ?? 0) - cost / 1000;
@@ -314,7 +405,7 @@ export function Home() {
 
       {selectedDay && (
         <>
-          {/* ── 我的阵容（sticky 吸顶，滑动时始终可见）── */}
+          {/* ── 我的阵容（sticky 吸顶，3 行×2 列卡片：C+总分 / PF+SF / SG+PG）── */}
           <div className="card home-lineup-card home-lineup-sticky">
             <div className="home-lineup-header">
               <h3 className="home-section-title">我的阵容</h3>
@@ -340,20 +431,6 @@ export function Home() {
                 </div>
               )}
             </div>
-            {isViewMode && myLineup && (
-              <div className="home-total-score">
-                总分：{' '}
-                <strong>
-                  {(myLineup.totalScore ??
-                    Object.values(myLineup.players).reduce(
-                      (sum, p) => sum + (p?.actualScore ?? 0),
-                      0,
-                    )
-                  ).toFixed(1)}{' '}
-                  分
-                </strong>
-              </div>
-            )}
             {!isViewMode && (
               <div className="salary-tracker home-salary-tracker">
                 <div className="salary-tracker-bar">
@@ -368,74 +445,68 @@ export function Home() {
               </div>
             )}
 
-            {LINEUP_POSITIONS.map((pos) => {
-              const slot = isViewMode && myLineup ? myLineup.players[pos] : selections[pos];
-              const picked = slot
-                ? {
-                    name: slot.name ?? '未知',
-                    team: slot.team ?? '',
-                    cost: slot.cost ?? 0,
-                    actualScore: slot && 'actualScore' in slot ? (slot as { actualScore?: number | null }).actualScore : null,
-                    avatarUrl: slot && 'avatarUrl' in slot ? (slot as { avatarUrl?: string | null }).avatarUrl : null,
-                  }
-                : null;
-              const isSelectedPos = posFilter === pos;
-              const perfTag = isViewMode && picked ? getPerformanceTag(picked.actualScore, picked.cost) : null;
-              return (
-                <div
-                  key={pos}
-                  className={`pos-slot home-pos-slot${isSelectedPos ? ' selected-pos' : ''} clickable-slot`}
-                  role="button"
-                  onClick={(e) => {
-                    if ((e.target as HTMLElement).closest('.home-remove-btn')) return;
-                    setPosFilter(pos);
-                  }}
-                >
-                  <span className="pos-label">{pos}</span>
-                  {picked ? (
-                    <div className="home-pos-content">
-                      {picked.avatarUrl && (
-                        <div className="home-pos-avatar">
-                          <img src={picked.avatarUrl} alt="" />
-                        </div>
-                      )}
-                      <div className="home-pos-text">
-                        <span className="home-player-name">{picked.name}</span>
-                        <span className="team-badge">{picked.team}</span>
-                        {isViewMode && (
-                          <span className="home-pos-cost-meta">${picked.cost.toLocaleString()}</span>
-                        )}
-                      </div>
-                      {isViewMode ? (
-                        <>
-                          {perfTag && <span className={`perf-tag perf-tag-${perfTag}`}>{perfTag}</span>}
-                          <span className="home-pos-score home-pos-score-emphasis">
-                            {(picked.actualScore ?? 0).toFixed(1)}
-                          </span>
-                        </>
-                      ) : (
-                        <div className="player-right">
-                          <span className="player-cost">${picked.cost.toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-muted home-pick-placeholder">
-                      {isViewMode ? '—' : `选择 ${pos}`}
+            <div className="home-lineup-grid">
+              {/* 第一行：C、总分 */}
+              {(['C', 'TOTAL'] as const).map((key) =>
+                key === 'TOTAL' ? (
+                  <div key="TOTAL" className="home-lineup-grid-card home-lineup-total-card">
+                    <span className="home-lineup-card-label">总分</span>
+                    <span className="home-lineup-total-value">
+                      {isViewMode && myLineup
+                        ? (
+                            myLineup.totalScore ??
+                            Object.values(myLineup.players).reduce(
+                              (sum, p) => sum + (p?.actualScore ?? 0),
+                              0,
+                            )
+                          ).toFixed(1)
+                        : '—'}
                     </span>
-                  )}
-                  {!isViewMode && picked && (
-                    <button
-                      type="button"
-                      onClick={() => removePlayer(pos)}
-                      className="home-remove-btn"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                    {isViewMode && myLineup && <span className="home-lineup-total-unit">分</span>}
+                  </div>
+                ) : (
+                  <LineupSlotCard
+                    key={key}
+                    pos={key}
+                    isViewMode={isViewMode}
+                    myLineup={myLineup}
+                    selections={selections}
+                    posFilter={posFilter}
+                    setPosFilter={setPosFilter}
+                    removePlayer={removePlayer}
+                    getPerformanceTag={getPerformanceTag}
+                  />
+                ),
+              )}
+              {/* 第二行：PF、SF */}
+              {(['PF', 'SF'] as const).map((pos) => (
+                <LineupSlotCard
+                  key={pos}
+                  pos={pos}
+                  isViewMode={isViewMode}
+                  myLineup={myLineup}
+                  selections={selections}
+                  posFilter={posFilter}
+                  setPosFilter={setPosFilter}
+                  removePlayer={removePlayer}
+                  getPerformanceTag={getPerformanceTag}
+                />
+              ))}
+              {/* 第三行：SG、PG */}
+              {(['SG', 'PG'] as const).map((pos) => (
+                <LineupSlotCard
+                  key={pos}
+                  pos={pos}
+                  isViewMode={isViewMode}
+                  myLineup={myLineup}
+                  selections={selections}
+                  posFilter={posFilter}
+                  setPosFilter={setPosFilter}
+                  removePlayer={removePlayer}
+                  getPerformanceTag={getPerformanceTag}
+                />
+              ))}
+            </div>
 
             {error && <div className="alert alert-error home-alert">{error}</div>}
 
