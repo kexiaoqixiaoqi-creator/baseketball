@@ -42,7 +42,7 @@ export class SinaClientService {
       s: 'team',
       a: 'roster',
       tid,
-      season: String(this.season - 1),
+      season: String(this.season),
     });
   }
 
