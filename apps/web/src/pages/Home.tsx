@@ -31,6 +31,14 @@ interface Player {
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+/** 增强标签：score - cost/1000 > 20 → 爆；> 10 → 猛 */
+function getPerformanceTag(score: number | null | undefined, cost: number): '爆' | '猛' | null {
+  const val = (score ?? 0) - cost / 1000;
+  if (val > 20) return '爆';
+  if (val > 10) return '猛';
+  return null;
+}
+
 /** 筛选出：当前日、前一日、后一日，共 3 个赛日；默认当前日 */
 function getDisplayDays(days: GameDay[]): { displayDays: GameDay[]; defaultDay: GameDay | null } {
   if (!days.length) return { displayDays: [], defaultDay: null };
@@ -255,19 +263,18 @@ export function Home() {
   /** playing | finish → 只读展示（阵容+得分）；prepare → 可选人、可提交 */
   const isViewMode = selectedDay?.status === 'playing' || selectedDay?.status === 'finish';
 
-  /** 赛日状态展示 */
-  const gameDayStatusLabel =
-    selectedDay == null
-      ? '未激活'
-      : (selectedDay.games?.length ?? 0) === 0
-        ? '未激活'
-        : selectedDay.status === 'prepare'
-          ? '准备中'
-          : selectedDay.status === 'playing'
-            ? '进行中'
-            : selectedDay.status === 'finish'
-              ? '已结束'
-              : '未激活';
+  /** 赛日状态展示：label 用于显示，key 用于 CSS class */
+  const { gameDayStatusLabel, gameDayStatusKey } = (() => {
+    if (selectedDay == null || (selectedDay.games?.length ?? 0) === 0) {
+      return { gameDayStatusLabel: '未激活', gameDayStatusKey: 'inactive' };
+    }
+    switch (selectedDay.status) {
+      case 'prepare': return { gameDayStatusLabel: '准备中', gameDayStatusKey: 'preparing' };
+      case 'playing': return { gameDayStatusLabel: '进行中', gameDayStatusKey: 'playing' };
+      case 'finish': return { gameDayStatusLabel: '已结束', gameDayStatusKey: 'finish' };
+      default: return { gameDayStatusLabel: '未激活', gameDayStatusKey: 'inactive' };
+    }
+  })();
 
   return (
     <div className="page page-home">
@@ -291,7 +298,7 @@ export function Home() {
           <h1 className="home-title">Fantasy NBA</h1>
           <span className="home-subtitle text-muted">组建你的阵容</span>
           {selectedDay && (
-            <span className={`home-status-badge status-${gameDayStatusLabel}`}>
+            <span className={`home-status-badge status-${gameDayStatusKey}`}>
               {gameDayStatusLabel}
             </span>
           )}
@@ -373,6 +380,7 @@ export function Home() {
                   }
                 : null;
               const isSelectedPos = posFilter === pos;
+              const perfTag = isViewMode && picked ? getPerformanceTag(picked.actualScore, picked.cost) : null;
               return (
                 <div
                   key={pos}
@@ -395,15 +403,16 @@ export function Home() {
                         <span className="home-player-name">{picked.name}</span>
                         <span className="team-badge">{picked.team}</span>
                         {isViewMode && (
-                          <span className="home-player-meta">
-                            · ${picked.cost.toLocaleString()}
-                          </span>
+                          <span className="home-pos-cost-meta">${picked.cost.toLocaleString()}</span>
                         )}
                       </div>
                       {isViewMode ? (
-                        <span className="home-pos-score">
-                          {(picked.actualScore ?? 0).toFixed(1)}
-                        </span>
+                        <>
+                          {perfTag && <span className={`perf-tag perf-tag-${perfTag}`}>{perfTag}</span>}
+                          <span className="home-pos-score home-pos-score-emphasis">
+                            {(picked.actualScore ?? 0).toFixed(1)}
+                          </span>
+                        </>
                       ) : (
                         <div className="player-right">
                           <span className="player-cost">${picked.cost.toLocaleString()}</span>
@@ -449,6 +458,7 @@ export function Home() {
                   const inLineup = isViewMode
                     ? myLineup && Object.values(myLineup.players).some((p) => p?.id === player.id)
                     : LINEUP_POSITIONS.some((p) => selections[p]?.id === player.id);
+                  const perfTag = isViewMode ? getPerformanceTag(player.score, player.cost) : null;
                   return (
                     <div
                       key={player.id}
@@ -471,19 +481,25 @@ export function Home() {
                         )}
                         <span className="player-pos-badge">{player.position}</span>
                         <span className="player-name">{player.nameCn ?? player.name}</span>
-                        <span className="team-badge">{player.team}</span>
-                        <div className="player-right">
-                          <span className="player-cost">${player.cost.toLocaleString()}</span>
-                        </div>
+                        {!isViewMode && <span className="team-badge">{player.team}</span>}
+                        {perfTag && <span className={`perf-tag perf-tag-${perfTag}`}>{perfTag}</span>}
+                        {isViewMode ? (
+                          <div className="player-right">
+                            <span className="player-score-emphasis">{(player.score ?? 0).toFixed(1)}分</span>
+                          </div>
+                        ) : (
+                          <div className="player-right">
+                            <span className="player-cost">${player.cost.toLocaleString()}</span>
+                          </div>
+                        )}
                         {inLineup && !isViewMode && <span className="player-check">✓</span>}
                       </div>
                       {(isViewMode || player.seasonStats) && (
                         <div className="player-item-row2">
                           {isViewMode ? (
                             <>
-                              <span className="player-score-inline">
-                                {(player.score ?? 0).toFixed(1)}分
-                              </span>
+                              <span className="team-badge">{player.team}</span>
+                              <span className="player-cost-inline">${player.cost.toLocaleString()}</span>
                               <span className="player-stats">
                                 {' · '}
                                 {player.gameStats
