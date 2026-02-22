@@ -393,13 +393,22 @@ export function Home() {
                       )}
                       <div className="home-pos-text">
                         <span className="home-player-name">{picked.name}</span>
-                        <span className="home-player-meta">
-                          {picked.team} · ${picked.cost.toLocaleString()}
-                        </span>
+                        <span className="team-badge">{picked.team}</span>
+                        {isViewMode && (
+                          <span className="home-player-meta">
+                            · ${picked.cost.toLocaleString()}
+                          </span>
+                        )}
                       </div>
-                      <span className="home-pos-score">
-                        {(picked.actualScore ?? 0).toFixed(1)}
-                      </span>
+                      {isViewMode ? (
+                        <span className="home-pos-score">
+                          {(picked.actualScore ?? 0).toFixed(1)}
+                        </span>
+                      ) : (
+                        <div className="player-right">
+                          <span className="player-cost">${picked.cost.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <span className="text-muted home-pick-placeholder">
@@ -462,7 +471,7 @@ export function Home() {
                         )}
                         <span className="player-pos-badge">{player.position}</span>
                         <span className="player-name">{player.nameCn ?? player.name}</span>
-                        <span className="player-team">{player.team}</span>
+                        <span className="team-badge">{player.team}</span>
                         <div className="player-right">
                           <span className="player-cost">${player.cost.toLocaleString()}</span>
                         </div>
