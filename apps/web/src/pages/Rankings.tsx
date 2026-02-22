@@ -151,7 +151,7 @@ export function Rankings() {
                   </span>
                   <span className="rank-username">{entry.user.username}</span>
                   <span className="rank-score">
-                    {entry.totalScore != null ? entry.totalScore.toFixed(1) : '—'}
+                    {(entry.totalScore ?? 0).toFixed(1)}
                   </span>
                   <span className="rank-cost">${entry.totalCost.toLocaleString()}</span>
                 </div>
@@ -165,7 +165,7 @@ export function Rankings() {
                           <span className="rank-player-pos">{pos}</span>
                           <span className="rank-player-name">{slot.name}</span>
                           <span className="rank-player-score">
-                            {slot.score != null ? slot.score.toFixed(1) : '—'}
+                            {(slot.score ?? 0).toFixed(1)}
                           </span>
                         </div>
                       );

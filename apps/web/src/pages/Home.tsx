@@ -159,6 +159,15 @@ export function Home() {
   }, [selectedDayId, officialRoom?.id, isAuthenticated, populateFromLineup, reset]);
 
   const filteredPlayers = players.filter((p) => p.position === posFilter);
+  /** playing/finish 时按 score 从高到低排序 */
+  const displayedPlayers = useMemo(() => {
+    const viewMode = selectedDay?.status === 'playing' || selectedDay?.status === 'finish';
+    if (!viewMode) return filteredPlayers;
+    return [...filteredPlayers].sort(
+      (a, b) => (b.score ?? 0) - (a.score ?? 0),
+    );
+  }, [filteredPlayers, selectedDay?.status]);
+
   const anchoredPlayerId = posFilter ? selections[posFilter]?.id : null;
 
   useEffect(() => {
@@ -166,11 +175,11 @@ export function Home() {
     const el = document.querySelector(`[data-player-id="${anchoredPlayerId}"]`);
     if (el) {
       const timer = setTimeout(() => {
-        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }, 50);
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 120);
       return () => clearTimeout(timer);
     }
-  }, [anchoredPlayerId, filteredPlayers]);
+  }, [anchoredPlayerId, displayedPlayers]);
 
   const handleSubmit = async () => {
     if (!isValid()) return;
@@ -388,9 +397,9 @@ export function Home() {
                           {picked.team} · ${picked.cost.toLocaleString()}
                         </span>
                       </div>
-                      {picked.actualScore != null && (
-                        <span className="home-pos-score">{picked.actualScore.toFixed(1)}</span>
-                      )}
+                      <span className="home-pos-score">
+                        {(picked.actualScore ?? 0).toFixed(1)}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-muted home-pick-placeholder">
@@ -424,10 +433,10 @@ export function Home() {
             <div className="card home-player-list">
               {loading ? (
                 <div className="loading home-loading">加载球员中…</div>
-              ) : filteredPlayers.length === 0 ? (
+              ) : displayedPlayers.length === 0 ? (
                 <div className="empty">暂无球员</div>
               ) : (
-                filteredPlayers.map((player) => {
+                displayedPlayers.map((player) => {
                   const inLineup = isViewMode
                     ? myLineup && Object.values(myLineup.players).some((p) => p?.id === player.id)
                     : LINEUP_POSITIONS.some((p) => selections[p]?.id === player.id);
@@ -459,21 +468,27 @@ export function Home() {
                         </div>
                         {inLineup && !isViewMode && <span className="player-check">✓</span>}
                       </div>
-                      <div className="player-item-row2">
-                        {player.score != null && (
-                          <span className="player-score-inline">{player.score.toFixed(1)}分</span>
-                        )}
-                        {(player.gameStats || player.seasonStats) && (
-                          <span className="player-stats">
-                            {player.score != null && ' · '}
-                            {player.gameStats
-                              ? `${player.gameStats.pts}分 ${player.gameStats.reb}板 ${player.gameStats.ast}助 ${player.gameStats.stl}断 ${player.gameStats.blk}帽 ${player.gameStats.to}误`
-                              : player.seasonStats
-                                ? `${Number(player.seasonStats.ppg).toFixed(1)}分 ${Number(player.seasonStats.rpg).toFixed(1)}板 ${Number(player.seasonStats.apg).toFixed(1)}助 ${Number(player.seasonStats.spg ?? 0).toFixed(1)}断 ${Number(player.seasonStats.bpg ?? 0).toFixed(1)}帽 ${Number(player.seasonStats.topg ?? 0).toFixed(1)}误`
-                                : ''}
-                          </span>
-                        )}
-                      </div>
+                      {(isViewMode || player.seasonStats) && (
+                        <div className="player-item-row2">
+                          {isViewMode ? (
+                            <>
+                              <span className="player-score-inline">
+                                {(player.score ?? 0).toFixed(1)}分
+                              </span>
+                              <span className="player-stats">
+                                {' · '}
+                                {player.gameStats
+                                  ? `${player.gameStats.pts}分 ${player.gameStats.reb}板 ${player.gameStats.ast}助 ${player.gameStats.stl}断 ${player.gameStats.blk}帽 ${player.gameStats.to}误`
+                                  : '0分 0板 0助 0断 0帽 0误'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="player-stats">
+                              {`${Number(player.seasonStats!.ppg).toFixed(1)}分 ${Number(player.seasonStats!.rpg).toFixed(1)}板 ${Number(player.seasonStats!.apg).toFixed(1)}助 ${Number(player.seasonStats!.spg ?? 0).toFixed(1)}断 ${Number(player.seasonStats!.bpg ?? 0).toFixed(1)}帽 ${Number(player.seasonStats!.topg ?? 0).toFixed(1)}误`}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })

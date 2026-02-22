@@ -100,20 +100,32 @@ export class RoomsService implements OnModuleInit {
       };
     };
 
-    return lineups.map((l, i) => ({
-      rank: i + 1,
-      user: { id: l.userId, username: l.user?.username ?? '—' },
-      totalScore: l.totalScore !== null ? Number(l.totalScore) : null,
-      totalCost: l.totalCost,
-      players: {
-        PG: makeSlot(l.pgId, 'PG'),
-        SG: makeSlot(l.sgId, 'SG'),
-        SF: makeSlot(l.sfId, 'SF'),
-        PF: makeSlot(l.pfId, 'PF'),
-        C: makeSlot(l.cId, 'C'),
-      },
-      createdAt: l.createdAt,
-    }));
+    const getRealtimeTotal = (l: { pgId: number; sgId: number; sfId: number; pfId: number; cId: number }) =>
+      (scoreMap.get(l.pgId) ?? 0) +
+      (scoreMap.get(l.sgId) ?? 0) +
+      (scoreMap.get(l.sfId) ?? 0) +
+      (scoreMap.get(l.pfId) ?? 0) +
+      (scoreMap.get(l.cId) ?? 0);
+
+    const entries = lineups.map((l) => {
+      const totalScore =
+        l.totalScore !== null ? Number(l.totalScore) : getRealtimeTotal(l);
+      return {
+        user: { id: l.userId, username: l.user?.username ?? '—' },
+        totalScore,
+        totalCost: l.totalCost,
+        players: {
+          PG: makeSlot(l.pgId, 'PG'),
+          SG: makeSlot(l.sgId, 'SG'),
+          SF: makeSlot(l.sfId, 'SF'),
+          PF: makeSlot(l.pfId, 'PF'),
+          C: makeSlot(l.cId, 'C'),
+        },
+        createdAt: l.createdAt,
+      };
+    });
+    entries.sort((a, b) => b.totalScore - a.totalScore);
+    return entries.map((e, i) => ({ rank: i + 1, ...e }));
   }
 
   async findAllForUser() {

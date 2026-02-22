@@ -313,8 +313,15 @@ body {
 
 .player-item:last-child { border-bottom: none; }
 .player-item:active { background: var(--bg-elevated); }
-.player-item.selected { background: rgba(233, 69, 96, 0.07); }
-.player-item.anchored { background: rgba(233, 69, 96, 0.12); box-shadow: inset 0 0 0 1px rgba(233, 69, 96, 0.3); }
+.player-item.selected {
+  background: rgba(233, 69, 96, 0.15);
+  border-left: 3px solid var(--primary);
+}
+.player-item.anchored {
+  background: rgba(233, 69, 96, 0.22);
+  border-left: 3px solid var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
 .player-item.disabled { opacity: 0.3; pointer-events: none; }
 .player-item.readonly { cursor: default; pointer-events: none; }
 
@@ -814,6 +821,7 @@ body {
   padding: 6px 10px;
   min-height: 44px;
   gap: 6px;
+  scroll-margin-top: 160px; /* 锚定滚动时预留 sticky 阵容高度 */
 }
 
 .page-home .home-player-list .player-item-two-row {
