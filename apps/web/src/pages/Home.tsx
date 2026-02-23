@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LINEUP_POSITIONS } from '@fantasy-nba/shared';
 import { gameDaysApi } from '../api/game-days.api';
@@ -172,6 +172,15 @@ export function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const scrollBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const onScroll = () => {
+      scrollBtnRef.current?.classList.toggle('visible', window.scrollY > 200);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const {
     selections,
@@ -590,6 +599,16 @@ export function Home() {
           </div>
         </>
       )}
+
+      <button
+        ref={scrollBtnRef}
+        type="button"
+        className="home-scroll-top-btn"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        aria-label="回到顶部"
+      >
+        ↑
+      </button>
 
       {success && (
         <div className="home-success-overlay" onClick={handleCloseSuccess}>

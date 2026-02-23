@@ -1232,6 +1232,46 @@ body {
   font-size: 13px;
 }
 
+.page-home .home-scroll-top-btn {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--bottom-nav-height) + 16px);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.page-home .home-scroll-top-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.page-home .home-scroll-top-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+@media (min-width: 768px) {
+  .page-home .home-scroll-top-btn {
+    bottom: 24px;
+  }
+}
+
 .page-home .home-success-overlay {
   position: fixed;
   inset: 0;
