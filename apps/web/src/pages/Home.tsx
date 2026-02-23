@@ -29,7 +29,13 @@ interface Player {
 }
 
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 /** 阵容网格中的单个位置卡片（头像占 2 行左侧，信息分两行右侧） */
 function LineupSlotCard({
@@ -538,45 +544,42 @@ export function Home() {
                                 : selectPlayer(player.position, player)
                       }
                     >
+                      <div className="home-player-avatar">
+                        {player.avatarUrl && <img src={player.avatarUrl} alt="" />}
+                      </div>
                       <div className="player-item-row1">
-                        {player.avatarUrl && (
-                          <div className="home-player-avatar">
-                            <img src={player.avatarUrl} alt="" />
-                          </div>
-                        )}
                         <span className="player-pos-badge">{player.position}</span>
-                        <span className="player-name">{player.nameCn ?? player.name}</span>
-                        {!isViewMode && <span className="team-badge">{player.team}</span>}
-                        {perfTag && <span className={`perf-tag perf-tag-${perfTag}`}>{perfTag}</span>}
-                        {isViewMode ? (
-                          <div className="player-right">
-                            <span className="player-score-emphasis">{(player.score ?? 0).toFixed(1)}分</span>
-                          </div>
-                        ) : (
-                          <div className="player-right">
-                            <span className="player-cost">${player.cost.toLocaleString()}</span>
-                          </div>
-                        )}
+                        <div className="player-name-group">
+                          <span className="player-name">{player.nameCn ?? player.name}</span>
+                          {perfTag && <span className={`perf-tag perf-tag-${perfTag}`}>{perfTag}</span>}
+                        </div>
                         {inLineup && !isViewMode && <span className="player-check">✓</span>}
                       </div>
-                      {(isViewMode || player.seasonStats) && (
-                        <div className="player-item-row2">
-                          {isViewMode ? (
-                            <>
-                              <span className="team-badge">{player.team}</span>
-                              <span className="player-cost-inline">${player.cost.toLocaleString()}</span>
-                              <span className="player-stats">
-                                {' · '}
-                                {player.gameStats
-                                  ? `${player.gameStats.pts}分 ${player.gameStats.reb}板 ${player.gameStats.ast}助 ${player.gameStats.stl}断 ${player.gameStats.blk}帽 ${player.gameStats.to}误`
-                                  : '0分 0板 0助 0断 0帽 0误'}
-                              </span>
-                            </>
-                          ) : (
+                      <div className="player-item-row2">
+                        <span className="team-badge">{player.team}</span>
+                        {isViewMode ? (
+                          <span className="player-stats">
+                            {' · '}
+                            {player.gameStats
+                              ? `${player.gameStats.pts}分 ${player.gameStats.reb}板 ${player.gameStats.ast}助 ${player.gameStats.stl}断 ${player.gameStats.blk}帽 ${player.gameStats.to}误`
+                              : '0分 0板 0助 0断 0帽 0误'}
+                          </span>
+                        ) : (
+                          player.seasonStats && (
                             <span className="player-stats">
-                              {`${Number(player.seasonStats!.ppg).toFixed(1)}分 ${Number(player.seasonStats!.rpg).toFixed(1)}板 ${Number(player.seasonStats!.apg).toFixed(1)}助 ${Number(player.seasonStats!.spg ?? 0).toFixed(1)}断 ${Number(player.seasonStats!.bpg ?? 0).toFixed(1)}帽 ${Number(player.seasonStats!.topg ?? 0).toFixed(1)}误`}
+                              {`${Number(player.seasonStats.ppg).toFixed(1)}分 ${Number(player.seasonStats.rpg).toFixed(1)}板 ${Number(player.seasonStats.apg).toFixed(1)}助 ${Number(player.seasonStats.spg ?? 0).toFixed(1)}断 ${Number(player.seasonStats.bpg ?? 0).toFixed(1)}帽 ${Number(player.seasonStats.topg ?? 0).toFixed(1)}误`}
                             </span>
-                          )}
+                          )
+                        )}
+                      </div>
+                      {isViewMode ? (
+                        <div className="player-right-col">
+                          <span className="player-score-emphasis">{(player.score ?? 0).toFixed(1)}分</span>
+                          <span className="player-cost-below">${player.cost.toLocaleString()}</span>
+                        </div>
+                      ) : (
+                        <div className="player-right-col">
+                          <span className="player-cost">${player.cost.toLocaleString()}</span>
                         </div>
                       )}
                     </div>
