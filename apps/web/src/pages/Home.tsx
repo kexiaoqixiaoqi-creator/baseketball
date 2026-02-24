@@ -422,6 +422,32 @@ export function Home() {
         <>
           {/* ── 我的阵容（sticky 吸顶）── */}
           <div className="card home-lineup-card home-lineup-sticky">
+            {/* 篮球半场背景 */}
+            <svg
+              className="home-lineup-court-bg"
+              viewBox="0 0 300 190"
+              preserveAspectRatio="xMidYMin slice"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              {/* 油漆区填充 */}
+              <rect x="102" y="0" width="96" height="114" fill="rgba(210,120,30,0.05)" />
+              {/* 油漆区边框 */}
+              <rect x="102" y="0" width="96" height="114" fill="none" stroke="rgba(215,130,40,0.28)" strokeWidth="1.5" />
+              {/* 罚球圈 */}
+              <circle cx="150" cy="114" r="36" fill="none" stroke="rgba(215,130,40,0.28)" strokeWidth="1.5" />
+              {/* 篮板 */}
+              <line x1="128" y1="5" x2="172" y2="5" stroke="rgba(225,135,40,0.55)" strokeWidth="2.5" />
+              {/* 篮圈 */}
+              <circle cx="150" cy="20" r="8" fill="none" stroke="rgba(240,100,30,0.65)" strokeWidth="1.8" />
+              {/* 限制区弧线 */}
+              <path d="M 137 20 A 13 13 0 0 0 163 20" fill="none" stroke="rgba(215,130,40,0.28)" strokeWidth="1.5" />
+              {/* 三分线两侧直线 */}
+              <line x1="14" y1="0" x2="14" y2="74" stroke="rgba(215,130,40,0.28)" strokeWidth="1.5" />
+              <line x1="286" y1="0" x2="286" y2="74" stroke="rgba(215,130,40,0.28)" strokeWidth="1.5" />
+              {/* 三分弧线：从 (14,74) 向下弧到 (286,74) */}
+              <path d="M 14 74 A 146 146 0 0 0 286 74" fill="none" stroke="rgba(215,130,40,0.28)" strokeWidth="1.5" />
+            </svg>
             <div className="home-lineup-header">
               <h3 className="home-section-title">我的阵容</h3>
               {isViewMode && myLineup ? (

@@ -584,6 +584,9 @@ body {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
+  background: rgba(10, 15, 30, 0.62);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
 }
 .page-home .home-lineup-header .home-section-title {
   margin-bottom: 0;
@@ -610,7 +613,7 @@ body {
 }
 
 .page-home .home-header {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .page-home .home-day-chips {
@@ -703,6 +706,19 @@ body {
   margin-bottom: 8px;
 }
 
+.page-home .home-lineup-card {
+  overflow: hidden;
+}
+
+/* 篮球半场背景 SVG */
+.page-home .home-lineup-court-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .page-home .home-section-title {
   font-size: 13px;
   font-weight: 700;
@@ -725,8 +741,10 @@ body {
 }
 
 .page-home .home-salary-tracker {
-  padding: 0;
+  padding: 4px 8px;
   margin-bottom: 6px;
+  background: rgba(10, 15, 30, 0.62);
+  border-radius: var(--radius-sm);
 }
 
 .page-home .home-salary-tracker .salary-tracker-header {
@@ -1296,7 +1314,7 @@ body {
   }
 
   .page-home .home-header {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
   }
 
   .page-home .home-title {
