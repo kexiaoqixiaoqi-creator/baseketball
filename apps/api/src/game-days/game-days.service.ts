@@ -70,7 +70,9 @@ export class GameDaysService {
     }
 
     const games = await this.gameRepo.find({ where: { date: dateStr } });
-    // 3. 初始化比赛日球员数据（同步每场比赛的 game_player_stats）
+    // 3. 预写入球员 stats（cost 快照 + 0 数据），不依赖新浪 API 是否已有数据
+    await this.initGamePlayerStatsForDate(dateStr);
+    // 4. 尝试同步新浪 API 当日比赛数据（若比赛已有数据则更新）
     for (const game of games) {
       try {
         await this.gameStatsSync.syncByInternalId(game.id);
@@ -467,6 +469,60 @@ export class GameDaysService {
       };
     });
     return { players, salaryCap };
+  }
+
+  /**
+   * 创建赛日时预写入 nba_game_player_stats：
+   * 为当日参赛的所有球员创建 0 数据记录，同时快照当前 cost。
+   * 幂等：若记录已存在则仅更新 cost（不覆盖已有的比赛数据）。
+   */
+  private async initGamePlayerStatsForDate(dateStr: string): Promise<void> {
+    const games = await this.gameRepo.find({
+      where: { date: dateStr },
+      select: ['id', 'homeTeamId', 'awayTeamId'],
+    });
+
+    const teamIdToGameId = new Map<number, number>();
+    for (const game of games) {
+      if (game.homeTeamId != null) teamIdToGameId.set(game.homeTeamId, game.id);
+      if (game.awayTeamId != null) teamIdToGameId.set(game.awayTeamId, game.id);
+    }
+    if (teamIdToGameId.size === 0) return;
+
+    const players = await this.playerRepo
+      .createQueryBuilder('p')
+      .where('p.teamId IN (:...teamIds)', { teamIds: Array.from(teamIdToGameId.keys()) })
+      .getMany();
+
+    let created = 0;
+    for (const player of players) {
+      if (player.teamId == null) continue;
+      const gameId = teamIdToGameId.get(player.teamId);
+      if (!gameId) continue;
+
+      const existing = await this.gameStatsRepo.findOne({
+        where: { gameId, playerId: player.id },
+      });
+      if (existing) continue;
+
+      await this.gameStatsRepo.save(
+        this.gameStatsRepo.create({
+          gameId,
+          playerId: player.id,
+          status: 'on',
+          pts: 0,
+          reb: 0,
+          ast: 0,
+          stl: 0,
+          blk: 0,
+          toVal: 0,
+          min: 0,
+          fantasyScore: 0,
+        }),
+      );
+      created++;
+    }
+    this.logger.log(`[initGamePlayerStatsForDate] ${dateStr}: created=${created}`);
   }
 
   private async mapGameDayForUser(gd: GameDay, salaryCap: number) {

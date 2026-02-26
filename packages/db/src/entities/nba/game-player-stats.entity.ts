@@ -44,4 +44,8 @@ export class GamePlayerStats {
 
   @Column({ type: 'decimal', precision: 8, scale: 2, default: 0, name: 'fantasy_score' })
   fantasyScore: number;
+
+  /** 球员上场状态，默认 on（上场），可扩展为 off / dnp 等 */
+  @Column({ type: 'varchar', length: 20, default: 'on' })
+  status: string;
 }

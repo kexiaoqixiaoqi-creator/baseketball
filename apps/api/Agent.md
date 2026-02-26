@@ -226,3 +226,122 @@ npm run build             # 生产构建
 - 15:45 CST — season-stats sync（球员赛季场均、薪资重算）
 - 16:00 CST — create-game-day（自动创建下一日赛日）
 - 每 5 分钟 — 同步 status=playing 的比赛日下的比赛球员数据
+
+---
+
+## NestJS 项目规范
+
+### 架构总览
+
+本项目为 **Monorepo**，核心包说明：
+
+| 包路径 | 说明 |
+|---|---|
+| `apps/api/src/` | NestJS 后端主体 |
+| `packages/db/src/entities/` | TypeORM 实体（统一定义，由 `@fantasy-nba/db` 导出） |
+| `packages/shared/` | 共享类型定义（Position 枚举等） |
+
+---
+
+### 模块结构规范
+
+每个业务模块统一包含以下文件：
+
+```
+<module>/
+  ├── <module>.module.ts       # 模块配置，注册 TypeOrmModule.forFeature([...entities])
+  ├── <module>.service.ts      # 业务逻辑
+  ├── <module>.controller.ts   # HTTP 路由（用户端）
+  ├── admin-<module>.controller.ts  # HTTP 路由（管理端，可选）
+  └── dto/
+      ├── create-<module>.dto.ts
+      └── update-<module>.dto.ts
+```
+
+**Admin vs User 控制器分离**：Admin 路由以 `admin/` 为前缀，配合 `@UseGuards(AdminGuard)` 保护；User 路由为公开或 JWT 可选。
+
+---
+
+### 实体（Entity）规范
+
+- **位置**：所有实体统一放在 `packages/db/src/entities/`，分 `nba/`（NBA 数据）和 `app/`（业务数据）两个子目录
+- **表名**：`@Entity('snake_case_table_name')`，NBA 数据表前缀 `nba_`，业务表前缀 `app_`
+- **主键**：`@PrimaryGeneratedColumn()`（自增整型）
+- **导出**：统一在 `packages/db/src/index.ts` re-export，API 通过 `import * as entities from '@fantasy-nba/db'` 批量加载
+
+---
+
+### 数据库变更规范（Migration）
+
+> **规范**：所有数据库 schema 变更必须使用 **TypeORM 标准 Migration**，禁止修改 `ensure-database.ts` 或依赖 `synchronize` 自动同步。
+
+#### 背景说明
+
+历史遗留的 `apps/api/src/ensure-database.ts` 承担了早期的 schema 迁移工作（枚举重命名、列增删、表重命名等），现已完成使命，**不再新增任何迁移逻辑**。
+
+TypeORM `synchronize` 仅用于本地初次建表，生产环境必须关闭（`DB_SYNCHRONIZE=false`）。
+
+#### 迁移文件位置
+
+```
+apps/api/src/migrations/
+  └── 1700000000000-MigrationName.ts
+```
+
+#### 有数据库变更时的操作流程
+
+```bash
+# 1. 修改 packages/db/src/entities/ 下的 Entity 定义
+
+# 2. 自动生成迁移文件（对比 Entity 与当前数据库 schema 的差异）
+npm run migration:generate -- apps/api/src/migrations/MigrationName
+
+# 3. 检查生成的迁移文件，确认 up() / down() 逻辑正确
+
+# 4. 本地执行迁移
+npm run migration:run
+
+# 5. 如需回滚
+npm run migration:revert
+```
+
+#### 迁移文件规范
+
+- 文件名格式：`{timestamp}-{PascalCaseName}.ts`，由命令自动生成
+- 必须同时实现 `up()` 和 `down()`，确保可回滚
+- 涉及数据回填（data migration）时，在 `up()` 中手写 `queryRunner.query(...)` 补充
+- 迁移文件一旦提交，**禁止修改**，需变更请新建迁移
+
+#### 禁止事项
+
+- 禁止直接修改 Entity 而不创建迁移
+- 禁止在 `ensure-database.ts` 中新增迁移逻辑
+- 禁止生产环境开启 `synchronize: true`
+
+---
+
+### DTO 规范
+
+- 使用 `class-validator` 装饰器做输入校验，全局已启用 `ValidationPipe({ whitelist: true, transform: true })`
+- 常用装饰器：`@IsString()` / `@IsInt()` / `@IsEmail()` / `@IsEnum()` / `@IsOptional()` / `@MinLength()` / `@MaxLength()`
+- DTO 命名：`CreateXxxDto` / `UpdateXxxDto`，放在模块 `dto/` 子目录
+
+---
+
+### 认证与鉴权规范
+
+| Guard | 说明 | 使用场景 |
+|---|---|---|
+| `JwtAuthGuard` | 强制要求有效 JWT | 需登录接口 |
+| `AdminGuard` | 继承 JwtAuthGuard，额外检查 `isAdmin=true` | 所有 `/admin/*` 路由 |
+| `OptionalJwtAuthGuard` | JWT 可选，无 token 不报错 | 公开但需识别用户身份的接口 |
+
+---
+
+### 编码规范
+
+- **依赖注入**：通过构造函数注入，不使用 `@Inject()` 属性注入
+- **仓库操作**：在 Service 中通过 `@InjectRepository(Entity)` 注入 TypeORM Repository
+- **路由参数**：数字 ID 一律加 `ParseIntPipe`，例如 `@Param('id', ParseIntPipe)`
+- **环境变量**：通过 `ConfigService` 读取，不直接访问 `process.env`（已全局注册 ConfigModule）
+- **共享服务**：跨模块需要的 Service 必须在对应 Module 的 `exports` 中声明

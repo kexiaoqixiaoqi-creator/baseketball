@@ -21,7 +21,8 @@
       "Bash(docker save:*)",
       "Bash(docker images:*)",
       "Bash(docker rmi:*)",
-      "Bash(docker image inspect:*)"
+      "Bash(docker image inspect:*)",
+      "Bash(head:*)"
     ]
   }
 }

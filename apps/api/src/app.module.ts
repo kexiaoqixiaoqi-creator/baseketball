@@ -12,10 +12,6 @@ import { UsersModule } from './users/users.module';
 import { TeamsModule } from './teams/teams.module';
 import { ScraperModule } from './scraper/scraper.module';
 
-const isProduction = process.env.NODE_ENV === 'production';
-/** 生产环境首次建表：设置 DB_SYNCHRONIZE=true 运行一次，建表完成后移除 */
-const forceSync = process.env.DB_SYNCHRONIZE === 'true';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -36,7 +32,7 @@ const forceSync = process.env.DB_SYNCHRONIZE === 'true';
         password: config.get('DB_PASSWORD', ''),
         database: config.get('DB_DATABASE', 'fantasy_nba'),
         entities: Object.values(entities),
-        synchronize: forceSync || !isProduction,
+        synchronize: false,
         logging: config.get('DB_LOGGING') === 'true',
       }),
     }),
