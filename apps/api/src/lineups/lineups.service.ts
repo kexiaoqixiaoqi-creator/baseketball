@@ -147,6 +147,11 @@ export class LineupsService {
       sfId: dto.sfId,
       pfId: dto.pfId,
       cId: dto.cId,
+      pgCost: costMap.get(dto.pgId) ?? 0,
+      sgCost: costMap.get(dto.sgId) ?? 0,
+      sfCost: costMap.get(dto.sfId) ?? 0,
+      pfCost: costMap.get(dto.pfId) ?? 0,
+      cCost: costMap.get(dto.cId) ?? 0,
       totalCost,
       totalScore: null,
     });
@@ -234,6 +239,11 @@ export class LineupsService {
       sfId: dto.sfId,
       pfId: dto.pfId,
       cId: dto.cId,
+      pgCost: costMap.get(dto.pgId) ?? 0,
+      sgCost: costMap.get(dto.sgId) ?? 0,
+      sfCost: costMap.get(dto.sfId) ?? 0,
+      pfCost: costMap.get(dto.pfId) ?? 0,
+      cCost: costMap.get(dto.cId) ?? 0,
       totalCost,
     });
     return this.lineupRepo.findOneOrFail({ where: { id: lineupId }, relations: ['room'] });

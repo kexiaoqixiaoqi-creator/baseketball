@@ -53,6 +53,21 @@ export class Lineup {
   @Column({ name: 'c_id' })
   cId: number;
 
+  @Column({ name: 'pg_cost', type: 'int', default: 0 })
+  pgCost: number;
+
+  @Column({ name: 'sg_cost', type: 'int', default: 0 })
+  sgCost: number;
+
+  @Column({ name: 'sf_cost', type: 'int', default: 0 })
+  sfCost: number;
+
+  @Column({ name: 'pf_cost', type: 'int', default: 0 })
+  pfCost: number;
+
+  @Column({ name: 'c_cost', type: 'int', default: 0 })
+  cCost: number;
+
   @Column({ name: 'total_cost', type: 'int', default: 0 })
   totalCost: number;
 
